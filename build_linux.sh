@@ -14,6 +14,7 @@ Usage: bash build_linux.sh [gcc|wii|ps2] [options] [-- -DCMAKE_OPTION=value ...]
   -h, --help         Show help
 
 No target: interactive menu. gcc means native Linux GCC, NOT Windows MinGW.
+PS2 output: bin/ps2-release/ or bin/ps2-debug/ (including usb/MCBETA/).
 Run inside your toolchain environment (for example ArchLinux Distrobox).
 No packages are installed, SDKs downloaded, or source files patched automatically.
 EOF
@@ -57,6 +58,7 @@ file_needed() { (( dry )) || [[ -f "$1" ]] || fail "Missing $1. Install the requ
 need cmake
 need ninja
 build="$ROOT/build/$target-${config,,}"
+ps2_output="$ROOT/bin/ps2-${config,,}"
 args=(-S "$ROOT" -B "$build" -G Ninja -DCMAKE_MAKE_PROGRAM=ninja -DCMAKE_BUILD_TYPE="$config")
 # Separate trees avoid inheriting Windows preset paths or another SDK's cache.
 if command -v ccache >/dev/null 2>&1; then
@@ -93,6 +95,7 @@ case "$target" in
         need mips64r5900el-ps2-elf-g++
         file_needed "$PS2SDK/ee/include/kernel.h"
         args+=("-DCMAKE_TOOLCHAIN_FILE=$ROOT/cmake/ps2_toolchain.cmake" -DPLATFORM=PS2
+            "-DPS2_OUTPUT_DIR=$ps2_output"
             -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY -DPS2_ENABLE_NETWORK=ON
             -DPS2_ENABLE_SOUND=ON -DPS2_ENABLE_PERSPECTIVE_TEXTURES=ON
             -DPS2_RENDER_STATS=OFF -DPS2_ENABLE_VU1_TERRAIN=ON -DMC_LOG_LEVEL=0)
@@ -117,7 +120,7 @@ build_steps() {
         case "$target" in
             ps2)
                 run cmake --build "$build" --target ps2-data --parallel "$parallel"
-                run python3 "$ROOT/scripts/make_pak.py" "$ROOT/bin/ps2/usb/MCBETA/data" "$ROOT/bin/ps2/usb/MCBETA/assets.pak"
+                run python3 "$ROOT/scripts/make_pak.py" "$ps2_output/usb/MCBETA/data" "$ps2_output/usb/MCBETA/assets.pak"
                 ;;
             wii) run cmake --build "$build" --target wii-data --parallel "$parallel" ;;
             gcc)
@@ -147,6 +150,6 @@ if (( ! configure_only )); then
     case "$target" in
         gcc) printf 'Executable: %s/bin/%s/OptiCraft\n' "$ROOT" "$config" ;;
         wii) printf 'Homebrew Channel directory: %s/bin/wii/sd/apps/OptiCraft\n' "$ROOT" ;;
-        ps2) printf 'USB application directory: %s/bin/ps2/usb/MCBETA\n' "$ROOT" ;;
+        ps2) printf 'USB application directory: %s/usb/MCBETA\n' "$ps2_output" ;;
     esac
 fi

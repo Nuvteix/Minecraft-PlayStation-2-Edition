@@ -21,6 +21,7 @@ if ($Help) {
 pwsh -File .\build_windows.ps1 [gcc|wii|ps2] [-Debug|-Release] [-Jobs 4]
     [-ConfigureOnly] [-NoAssets] [-DryRun] [-CMakeArgs '-DNAME=value']
 No platform: show the selection menu. Default configuration: Release.
+PS2 output: bin/ps2-release/ or bin/ps2-debug/ (including usb/MCBETA/).
 Requires native Windows CMake/Ninja and the selected SDK on PATH.
 GCC means Windows MinGW GCC. No automatic installs, downloads, or cleanup.
 '@
@@ -39,6 +40,7 @@ if (-not $Platform) {
 $Platform = $Platform.ToLowerInvariant()
 $Configuration = if ($Debug) { 'Debug' } else { 'Release' }
 $BuildDir = "$Root/build/$Platform-$($Configuration.ToLowerInvariant())"
+$Ps2OutputDir = "$Root/bin/ps2-$($Configuration.ToLowerInvariant())"
 function Require-Tool([string]$Name) {
     if (-not $DryRun -and -not (Get-Command $Name -ErrorAction SilentlyContinue)) {
         throw "Missing $Name. Install the required build dependencies."
@@ -107,6 +109,7 @@ switch ($Platform) {
         Require-Tool mips64r5900el-ps2-elf-g++
         Require-File "$env:PS2SDK/ee/include/kernel.h"
         $ConfigureArgs += @("-DCMAKE_TOOLCHAIN_FILE=$Root/cmake/ps2_toolchain.cmake",
+            "-DPS2_OUTPUT_DIR=$Ps2OutputDir",
             '-DPLATFORM=PS2', '-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY',
             '-DPS2_ENABLE_NETWORK=ON', '-DPS2_ENABLE_SOUND=ON', '-DPS2_ENABLE_PERSPECTIVE_TEXTURES=ON',
             '-DPS2_RENDER_STATS=OFF', '-DPS2_ENABLE_VU1_TERRAIN=ON', '-DMC_LOG_LEVEL=0')
@@ -145,13 +148,13 @@ try {
         if (-not $NoAssets -and $Platform -ne 'gcc') {
             Invoke-BuildCommand 'cmake' @('--build', $BuildDir, '--target', "$Platform-data", '--parallel', "$Jobs")
             if ($Platform -eq 'ps2') {
-                Invoke-BuildCommand 'python' @("$Root/scripts/make_pak.py", "$Root/bin/ps2/usb/MCBETA/data", "$Root/bin/ps2/usb/MCBETA/assets.pak")
+                Invoke-BuildCommand 'python' @("$Root/scripts/make_pak.py", "$Ps2OutputDir/usb/MCBETA/data", "$Ps2OutputDir/usb/MCBETA/assets.pak")
             }
         }
         switch ($Platform) {
             'gcc' { Write-Host "Executable: $Root/bin/$Configuration/OptiCraft.exe (keep MinGW DLLs available; run from project root)" }
             'wii' { Write-Host "SD files: $Root/bin/wii/sd/" }
-            'ps2' { Write-Host "USB application: $Root/bin/ps2/usb/MCBETA/" }
+            'ps2' { Write-Host "USB application: $Ps2OutputDir/usb/MCBETA/" }
         }
     }
 } catch {
