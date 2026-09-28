@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 
 project(OptiCraftHeritage
-    VERSION 1.1.21
+    VERSION 1.1.24
     DESCRIPTION "OptiCraft Heritage - heavily modified clean-room C++ implementation"
     LANGUAGES C CXX
 )
