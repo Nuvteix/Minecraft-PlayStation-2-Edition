@@ -2179,6 +2179,14 @@ void EntityRenderer::renderRainSnow(float partialTicks)
     const int_t range = Config::isRainFancy() ? 10 : 5;
 #endif
     int_t activeWeatherTexture = -1;
+#ifdef PS2_OPTIMIZATION_VALIDATION
+    const auto validationDrawWeatherBatch = [&]()
+    {
+        Ps2OptimizationValidation::weatherDrawBegin(activeWeatherTexture);
+        const int_t bytesDrawn = tessellator->draw();
+        Ps2OptimizationValidation::weatherDrawEnd(bytesDrawn);
+    };
+#endif
 #if !PLATFORM_PS2
     const float weatherTime = static_cast<float>(rendererUpdateCount) + partialTicks;
 #endif
@@ -2240,7 +2248,13 @@ void EntityRenderer::renderRainSnow(float partialTicks)
                 if (activeWeatherTexture != 0)
                 {
                     if (activeWeatherTexture >= 0)
+                    {
+#ifdef PS2_OPTIMIZATION_VALIDATION
+                        validationDrawWeatherBatch();
+#else
                         tessellator->draw();
+#endif
+                    }
 #ifdef PS2_OPTIMIZATION_VALIDATION
                     ++validationWeatherTextureSwitches;
 #endif
@@ -2301,7 +2315,13 @@ void EntityRenderer::renderRainSnow(float partialTicks)
                 if (activeWeatherTexture != 1)
                 {
                     if (activeWeatherTexture >= 0)
+                    {
+#ifdef PS2_OPTIMIZATION_VALIDATION
+                        validationDrawWeatherBatch();
+#else
                         tessellator->draw();
+#endif
+                    }
 #ifdef PS2_OPTIMIZATION_VALIDATION
                     ++validationWeatherTextureSwitches;
 #endif
@@ -2371,7 +2391,13 @@ void EntityRenderer::renderRainSnow(float partialTicks)
     validationReportWeather();
 #endif
     if (activeWeatherTexture >= 0)
+    {
+#ifdef PS2_OPTIMIZATION_VALIDATION
+        validationDrawWeatherBatch();
+#else
         tessellator->draw();
+#endif
+    }
 #if PLATFORM_PS2 && MC_LOG_LEVEL >= 2
     if (reportWeather)
         MC_LOG_DEBUG("ps2.weather", "submittedColumns=%d lastKind=%d\n", weatherColumns, activeWeatherTexture);
