@@ -47,7 +47,7 @@ bool faceVisible(const Ps2TerrainSectionView& section, int group)
         };
         const int axis = group >> 1;
         const bool positive = (group & 1) == 0;
-        const float margin = (float)PLATFORM_FACE_CULL_EYE_MARGIN;
+        const float margin = section.faceCullMargin;
         return positive
             ? eye[axis] + margin > section.faceGroups->planeMin[group]
             : eye[axis] - margin < section.faceGroups->planeMax[group];
@@ -618,6 +618,25 @@ bool ps2_terrain_build_section_commands(int sectionIndex)
     bool faceVisibility[PS2_FACE_GROUP_COUNT];
     for (int group = 0; group < PS2_FACE_GROUP_COUNT; ++group)
         faceVisibility[group] = faceVisible(section, group);
+
+#ifdef PS2_OPTIMIZATION_VALIDATION
+    int validationCulledGroups = 0;
+    int validationCulledRanges = 0;
+    int validationCulledVertices = 0;
+    for (int group = 0; group < PS2_FACE_GROUP_COUNT; ++group)
+        if (!faceVisibility[group])
+            ++validationCulledGroups;
+    for (const Ps2MeshRange& range : ranges)
+    {
+        if (!faceVisibility[range.faceGroup()])
+        {
+            ++validationCulledRanges;
+            validationCulledVertices += range.vertexCount();
+        }
+    }
+    Ps2OptimizationValidation::terrainFaceCull(section.faceCullMargin,
+        validationCulledGroups, validationCulledRanges, validationCulledVertices);
+#endif
 
 #ifdef PS2_RENDER_STATS
     const unsigned int commandStart = commandProfileClock();

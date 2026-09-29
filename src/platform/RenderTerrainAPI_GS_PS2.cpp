@@ -83,6 +83,7 @@ RenderTerrainDrawResult renderTerrainDrawSection(const RenderTerrainFrame& frame
     nativeSection.eyeLocalX = section.eyeLocalX;
     nativeSection.eyeLocalY = section.eyeLocalY;
     nativeSection.eyeLocalZ = section.eyeLocalZ;
+    nativeSection.faceCullMargin = section.faceCullMargin;
     nativeSection.fullyInside = section.fullyInside;
     nativeSection.nativeEnabled = section.nativeEnabled;
 

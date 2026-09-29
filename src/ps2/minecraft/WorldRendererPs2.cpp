@@ -52,6 +52,7 @@ namespace
     static double s_ps2ViewX = 0.0;
     static double s_ps2ViewY = 0.0;
     static double s_ps2ViewZ = 0.0;
+    static float s_ps2FaceCullMargin = PS2_FACE_CULL_FIRST_PERSON_EYE_MARGIN;
     static RenderTerrainFrame s_ps2RendererFrame = {};
     static constexpr size_t kPs2CapturedSlots = 6u; // xyz, uv, rgba (24-byte backend capture)
 
@@ -317,11 +318,14 @@ void WorldRenderer::updateRenderer()
     ps2BuildRendererStep(PLATFORM_CHUNK_BUILD_BLOCKS_PER_STEP);
 }
 
-void WorldRenderer::setTerrainViewerPosition(double x, double y, double z)
+void WorldRenderer::setTerrainViewerPosition(double x, double y, double z, bool thirdPersonView)
 {
     s_ps2ViewX = x;
     s_ps2ViewY = y;
     s_ps2ViewZ = z;
+    s_ps2FaceCullMargin = thirdPersonView
+        ? PS2_FACE_CULL_EYE_MARGIN
+        : PS2_FACE_CULL_FIRST_PERSON_EYE_MARGIN;
     renderTerrainCaptureFrame(s_ps2RendererFrame);
 }
 
@@ -1470,6 +1474,7 @@ void WorldRenderer::renderPassCached(int_t pass)
 	section.eyeLocalX = (float)(s_ps2ViewX - (double)posX);
 	section.eyeLocalY = (float)(s_ps2ViewY - (double)posY);
 	section.eyeLocalZ = (float)(s_ps2ViewZ - (double)posZ);
+	section.faceCullMargin = s_ps2FaceCullMargin;
 	section.fullyInside = isFullyInFrustum;
 	section.nativeEnabled = true;
 

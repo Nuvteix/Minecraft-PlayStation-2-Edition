@@ -117,7 +117,7 @@ public:
 	// feeds both face-bucket culling and the section-to-camera translation. The
 	// native backend also snapshots projection*modelview here once, before the
 	// visible-section loop, so individual chunks never touch the GL matrix stack.
-	static void setTerrainViewerPosition(double x, double y, double z);
+	static void setTerrainViewerPosition(double x, double y, double z, bool thirdPersonView);
 
 	// True when the last completed build step actually meshed blocks. False
 	// means it returned early on the generation gate (a source chunk is still

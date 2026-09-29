@@ -16,6 +16,7 @@ void particleLayerCapEviction();
 
 void terrainFogCull(int pass);
 void terrainClusters(int tested, int rejected, int clipSafe, int guardRisk);
+void terrainFaceCull(float margin, int groups, int ranges, int vertices);
 void terrainVu1Submit(int vertices);
 void terrainVu1Retry(bool fatal);
 void terrainVu0Submit(int vertices);
@@ -65,6 +66,7 @@ inline void particleFastMove() {}
 inline void particleLayerCapEviction() {}
 inline void terrainFogCull(int) {}
 inline void terrainClusters(int, int, int, int) {}
+inline void terrainFaceCull(float, int, int, int) {}
 inline void terrainVu1Submit(int) {}
 inline void terrainVu1Retry(bool) {}
 inline void terrainVu0Submit(int) {}

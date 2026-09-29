@@ -158,15 +158,18 @@
 // The eye position the test uses is RenderGlobal's d1/d2/d3, i.e. the interpolated
 // render-view entity position. In Beta that IS the eye: Entity::setPosition builds
 // the bounding box downward from posY by yOffset (1.62 for a player), so posY sits
-// at eye level and the first-person test is exact.
+// at eye level. First person only applies small camera-local offsets (-0.1 forward,
+// sleeping/anaglyph/bobbing adjustments), so 0.5 blocks is a conservative guard
+// while still allowing face buckets close behind the eye plane to be rejected.
+#define PS2_FACE_CULL_FIRST_PERSON_EYE_MARGIN 0.5f
 //
-// Third person is not: EntityRenderer::orientCamera pulls the camera up to
+// Third person is different: EntityRenderer::orientCamera pulls the camera up to
 // thirdPersonDistance (4.0) back along the view vector inside the modelview
-// matrix, and nothing outside that function sees the offset. Without a margin,
-// a bucket could be dropped while the pulled-back camera can still see it --
-// which reads as terrain vanishing when F5 is pressed. 4.0 covers the whole
-// third-person arc; the cull only loses power for geometry within 4 blocks of
-// the eye plane, which is a small slice of a 16-block section.
+// matrix, and nothing outside that function sees the offset. Without a 4-block
+// margin, a bucket could be dropped while the pulled-back camera can still see it
+// -- which reads as terrain vanishing when F5 is pressed. Keep the existing wide
+// margin for both third-person camera modes. PLATFORM_FACE_CULL_EYE_MARGIN maps
+// to this value and remains the conservative maximum margin.
 #define PS2_FACE_CULL_EYE_MARGIN 4.0f
 
 // Largest opaque section mesh, in quads, that the reorder above will handle.

@@ -109,6 +109,7 @@ struct RenderTerrainSectionView
     const void* opaqueMesh = nullptr;
     float translateX = 0.0f, translateY = 0.0f, translateZ = 0.0f;
     float eyeLocalX = 0.0f, eyeLocalY = 0.0f, eyeLocalZ = 0.0f;
+    float faceCullMargin = 0.0f;
     bool fullyInside = false;
     bool nativeEnabled = false;
 };

@@ -1579,7 +1579,7 @@ int_t RenderGlobal::renderSortedRenderers(int_t i, int_t j, int_t k, double d)
 	//
 	// The face bucket cull also needs this interpolated eye position. Publishing
 	// it once keeps culling and the native transform on the exact same frame.
-	WorldRenderer::setTerrainViewerPosition(d1, d2, d3);
+	WorldRenderer::setTerrainViewerPosition(d1, d2, d3, mc->gameSettings->thirdPersonView != 0);
 
 	// Keep the same nearest sections when the draw budget is exhausted, then
 	// blend that selected set back-to-front. Reversing the entire candidate

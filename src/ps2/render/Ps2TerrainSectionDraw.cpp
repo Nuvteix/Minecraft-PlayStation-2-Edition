@@ -464,7 +464,7 @@ Ps2TerrainDrawResult ps2_terrain_draw_section(const Ps2RendererFrame& frame,
             {
                 const int axis = group >> 1;
                 const bool positive = (group & 1) == 0;
-                const float margin = (float)PLATFORM_FACE_CULL_EYE_MARGIN;
+                const float margin = section.faceCullMargin;
                 keep = positive
                     ? eye[axis] + margin > section.faceGroups->planeMin[group]
                     : eye[axis] - margin < section.faceGroups->planeMax[group];

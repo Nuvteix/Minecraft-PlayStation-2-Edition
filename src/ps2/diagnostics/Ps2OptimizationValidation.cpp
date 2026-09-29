@@ -28,6 +28,11 @@ struct Counters
     std::uint32_t clustersRejected = 0;
     std::uint32_t clustersClipSafe = 0;
     std::uint32_t clustersGuardRisk = 0;
+    std::uint32_t faceCullSections = 0;
+    std::uint32_t faceCullTightSections = 0;
+    std::uint32_t faceCullGroups = 0;
+    std::uint32_t faceCullRanges = 0;
+    std::uint32_t faceCullVertices = 0;
     std::uint32_t vu1Submits = 0;
     std::uint32_t vu1Vertices = 0;
     std::uint32_t vu1Retries = 0;
@@ -166,13 +171,15 @@ void reportConfig()
 
     MC_LOG_INFO("ps2.validate",
         "config particles fast=%d maxLayer=%d brightness=%d destroyGrid=%d randomDisplay=%d cache=%d reuseRng=%d"
-        " rainSplash=%d rainSnow=%d fireLayers=%d greedySlices=%d\n",
+        " rainSplash=%d rainSnow=%d fireLayers=%d greedySlices=%d faceCullMargin=%.1f/%.1f\n",
         (int)PLATFORM_FAST_PARTICLE_PHYSICS, (int)PLATFORM_MAX_PARTICLES_PER_LAYER,
         (int)PLATFORM_PARTICLE_BRIGHTNESS_INTERVAL, (int)PLATFORM_BLOCK_DESTROY_PARTICLE_GRID,
         (int)PLATFORM_RANDOM_DISPLAY_PROBES, (int)PLATFORM_CACHE_RANDOM_DISPLAY_CHUNKS,
         (int)PLATFORM_REUSE_RANDOM_DISPLAY_RNG, (int)PS2_RAIN_SPLASH_PARTICLES_PER_TICK,
         (int)(!PLATFORM_SKIP_RAIN_SNOW), (int)PS2_ENTITY_FIRE_MAX_LAYERS,
-        (int)PS2_GREEDY_SLICES_PER_STEP);
+        (int)PS2_GREEDY_SLICES_PER_STEP,
+        (double)PS2_FACE_CULL_FIRST_PERSON_EYE_MARGIN,
+        (double)PLATFORM_FACE_CULL_EYE_MARGIN);
 }
 }
 
@@ -200,6 +207,12 @@ void reportAndReset()
         g_counters.vu1Retries, g_counters.vu1Fatal,
         g_counters.vu0Submits, g_counters.vu0Vertices,
         g_counters.translucentQuadRejects);
+
+    MC_LOG_INFO("ps2.validate",
+        "terrain faceCull sections=%u tight=%u groups=%u ranges=%u verts=%u\n",
+        g_counters.faceCullSections, g_counters.faceCullTightSections,
+        g_counters.faceCullGroups, g_counters.faceCullRanges,
+        g_counters.faceCullVertices);
 
     MC_LOG_INFO("ps2.validate",
         "water enclosedSkip=%u flatFast=%u mergeCalls=%u mergeInput=%u mergeEligible=%u mergeRemoved=%u\n",
@@ -337,6 +350,16 @@ void terrainClusters(int tested, int rejected, int clipSafe, int guardRisk)
     if (rejected > 0) g_counters.clustersRejected += (std::uint32_t)rejected;
     if (clipSafe > 0) g_counters.clustersClipSafe += (std::uint32_t)clipSafe;
     if (guardRisk > 0) g_counters.clustersGuardRisk += (std::uint32_t)guardRisk;
+}
+
+void terrainFaceCull(float margin, int groups, int ranges, int vertices)
+{
+    ++g_counters.faceCullSections;
+    if (margin < (float)PLATFORM_FACE_CULL_EYE_MARGIN)
+        ++g_counters.faceCullTightSections;
+    if (groups > 0) g_counters.faceCullGroups += (std::uint32_t)groups;
+    if (ranges > 0) g_counters.faceCullRanges += (std::uint32_t)ranges;
+    if (vertices > 0) g_counters.faceCullVertices += (std::uint32_t)vertices;
 }
 
 void terrainVu1Submit(int vertices)

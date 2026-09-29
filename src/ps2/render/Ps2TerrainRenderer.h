@@ -36,6 +36,7 @@ struct Ps2TerrainSectionView
     float eyeLocalX;
     float eyeLocalY;
     float eyeLocalZ;
+    float faceCullMargin;
     bool fullyInside;
     bool nativeEnabled;
 };
