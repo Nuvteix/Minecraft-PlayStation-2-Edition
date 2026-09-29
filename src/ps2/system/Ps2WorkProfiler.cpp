@@ -4,6 +4,7 @@
 
 #include "net/minecraft/src/Entity.h"
 #include "net/minecraft/src/EntityList.h"
+#include "platform/Thread.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -64,6 +65,19 @@ int s_decorCount = 0;
 Sample s_decorOverflow;
 
 unsigned int s_populationBlockWrites = 0;
+std::uintptr_t s_profileThreadId = 0;
+bool s_profileThreadInitialized = false;
+
+bool isProfileThread()
+{
+    const std::uintptr_t current = PlatformThread::currentId();
+    if (!s_profileThreadInitialized)
+    {
+        s_profileThreadId = current;
+        s_profileThreadInitialized = true;
+    }
+    return current == s_profileThreadId;
+}
 
 void add(Sample &sample, std::uint32_t elapsed)
 {
@@ -85,6 +99,11 @@ void report(int frame, const char *group, const char *name, const Sample &sample
 
 void platformProfileLoadWork(std::uint32_t start, PlatformLoadWork work)
 {
+    // Saved-chunk reads may run on the PS2 streaming worker. The level-2 work
+    // profiler is intentionally game-thread-only and uses unsynchronised
+    // counters, so ignore worker spans rather than adding locks to hot paths.
+    if (!isProfileThread())
+        return;
     const std::uint32_t elapsed = platformProfileRenderPhaseBegin() - start;
     const int index = static_cast<int>(work);
     if (index >= 0 && index < static_cast<int>(PlatformLoadWork::Count))

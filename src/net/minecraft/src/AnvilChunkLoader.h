@@ -21,6 +21,15 @@ public:
 
     Chunk *loadChunk(World *world, int_t x, int_t z,
                      ChunkLoadStatus *status = nullptr) override;
+    // Split saved-chunk loading so console streaming workers can move only
+    // region read/inflate off the game thread. The returned bytes are the raw
+    // inflated NBT payload; parsing and Chunk/entity construction remain on
+    // the caller thread through loadChunkFromData().
+    bool readChunkData(int_t x, int_t z, std::vector<byte_t> &data,
+                       ChunkLoadStatus *status = nullptr);
+    Chunk *loadChunkFromData(World *world, int_t x, int_t z,
+                             std::vector<byte_t> &data,
+                             ChunkLoadStatus *status = nullptr);
     // Whether loadChunk() would find data for this chunk: queued for writing
     // or already in its region file. Lets the streaming provider hand only
     // genuinely new terrain to the generation worker, which has no loader of

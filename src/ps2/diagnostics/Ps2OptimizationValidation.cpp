@@ -35,6 +35,14 @@ struct Counters
     std::uint32_t faceCullVertices = 0;
     std::uint32_t vu1Submits = 0;
     std::uint32_t vu1Vertices = 0;
+    std::uint32_t vu1BatchLe32 = 0;
+    std::uint32_t vu1Batch33To64 = 0;
+    std::uint32_t vu1Batch65To96 = 0;
+    std::uint32_t vu1Batch97To128 = 0;
+    std::uint32_t vu1BatchOver128 = 0;
+    std::uint32_t vu1BatchLe64Vertices = 0;
+    std::uint32_t vu1BatchMin = 0;
+    std::uint32_t vu1BatchMax = 0;
     std::uint32_t vu1Retries = 0;
     std::uint32_t vu1Fatal = 0;
     std::uint32_t vu0Submits = 0;
@@ -214,6 +222,17 @@ void reportAndReset()
         g_counters.faceCullGroups, g_counters.faceCullRanges,
         g_counters.faceCullVertices);
 
+    const double vu1BatchAverage = g_counters.vu1Submits > 0
+        ? static_cast<double>(g_counters.vu1Vertices) / static_cast<double>(g_counters.vu1Submits)
+        : 0.0;
+    MC_LOG_INFO("ps2.validate",
+        "terrain vu1Batch <=32=%u 33-64=%u 65-96=%u 97-128=%u >128=%u"
+        " min=%u max=%u avg=%.1f le64Verts=%u\n",
+        g_counters.vu1BatchLe32, g_counters.vu1Batch33To64,
+        g_counters.vu1Batch65To96, g_counters.vu1Batch97To128,
+        g_counters.vu1BatchOver128, g_counters.vu1BatchMin,
+        g_counters.vu1BatchMax, vu1BatchAverage, g_counters.vu1BatchLe64Vertices);
+
     MC_LOG_INFO("ps2.validate",
         "water enclosedSkip=%u flatFast=%u mergeCalls=%u mergeInput=%u mergeEligible=%u mergeRemoved=%u\n",
         g_counters.enclosedWaterSkip, g_counters.flatWaterFast,
@@ -365,7 +384,29 @@ void terrainFaceCull(float margin, int groups, int ranges, int vertices)
 void terrainVu1Submit(int vertices)
 {
     ++g_counters.vu1Submits;
-    if (vertices > 0) g_counters.vu1Vertices += (std::uint32_t)vertices;
+    if (vertices <= 0)
+        return;
+
+    const std::uint32_t batchVertices = static_cast<std::uint32_t>(vertices);
+    g_counters.vu1Vertices += batchVertices;
+    if (g_counters.vu1BatchMin == 0 || batchVertices < g_counters.vu1BatchMin)
+        g_counters.vu1BatchMin = batchVertices;
+    if (batchVertices > g_counters.vu1BatchMax)
+        g_counters.vu1BatchMax = batchVertices;
+
+    if (batchVertices <= 32)
+        ++g_counters.vu1BatchLe32;
+    else if (batchVertices <= 64)
+        ++g_counters.vu1Batch33To64;
+    else if (batchVertices <= 96)
+        ++g_counters.vu1Batch65To96;
+    else if (batchVertices <= 128)
+        ++g_counters.vu1Batch97To128;
+    else
+        ++g_counters.vu1BatchOver128;
+
+    if (batchVertices <= 64)
+        g_counters.vu1BatchLe64Vertices += batchVertices;
 }
 
 void terrainVu1Retry(bool fatal)

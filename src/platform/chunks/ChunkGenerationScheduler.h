@@ -13,6 +13,7 @@
 class Chunk;
 class IChunkProvider;
 class McRegionChunkLoader;
+class AnvilChunkLoader;
 class World;
 
 class ChunkGenerationScheduler
@@ -20,6 +21,9 @@ class ChunkGenerationScheduler
 public:
     enum class ResultKind
     {
+        // No saved chunk exists at this coordinate. A read-only streaming
+        // worker returns this so the game thread can queue normal generation.
+        Missing,
         LoadedData,
         // Saved chunk already decoded on the worker (PLATFORM_ASYNC_CHUNK_DECODE):
         // `chunk` holds blocks/light/heightmap, `nbt` the parsed root whose
@@ -53,7 +57,7 @@ public:
     // `world` is only read by the worker-side chunk decode; pass nullptr to
     // keep saved chunks on the LoadedData path.
     ChunkGenerationScheduler(IChunkProvider* ownedGenerator, McRegionChunkLoader* regionLoader,
-                             World* world = nullptr);
+                             World* world = nullptr, AnvilChunkLoader* anvilLoader = nullptr);
     ~ChunkGenerationScheduler();
 
     bool start();
@@ -68,6 +72,7 @@ public:
     bool popResult(Result& out);
     void complete(int_t x, int_t z);
     void queueSizes(int_t& pending, int_t& completed) const;
+    void readStats(std::uint32_t& loaded, std::uint32_t& missing, std::uint32_t& errors) const;
 
 private:
     static std::uint64_t key(int_t x, int_t z);

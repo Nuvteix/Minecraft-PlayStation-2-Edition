@@ -129,38 +129,70 @@ AnvilChunkLoader::~AnvilChunkLoader()
 
 Chunk *AnvilChunkLoader::loadChunk(World *world, int_t x, int_t z, ChunkLoadStatus *status)
 {
+    if (!readChunkData(x, z, readScratch, status))
+        return nullptr;
+    return loadChunkFromData(world, x, z, readScratch, status);
+}
+
+bool AnvilChunkLoader::readChunkData(int_t x, int_t z, std::vector<byte_t> &data,
+                                     ChunkLoadStatus *status)
+{
     if (status != nullptr)
         *status = ChunkLoadStatus::Missing;
+    data.clear();
 
     try
     {
         const ChunkCoordIntPair position(x, z);
-        std::vector<byte_t> pendingBytes;
-        if (copyPendingChunkData(position, pendingBytes))
+        if (copyPendingChunkData(position, data))
         {
-            VectorInputStream pendingStream(pendingBytes);
-            std::unique_ptr<NBTTagCompound> pending;
-            {
-                PlatformLoadWorkScope nbtWork(PlatformLoadWork::Nbt);
-                pending.reset(CompressedStreamTools::readCompound(pendingStream));
-            }
-            return loadChunkFromCompound(world, x, z, pending.get(), status);
+            if (status != nullptr)
+                *status = ChunkLoadStatus::Loaded;
+            return true;
         }
 
         if (storageDisabled)
-            return nullptr;
+            return false;
 
         std::shared_ptr<RegionFile> region = RegionFileCache::acquireRegionFile(
             worldDir, x, z, RegionFileCache::Format::Anvil, readOnly);
         RegionFile::ReadStatus readStatus = RegionFile::ReadStatus::Missing;
-        if (!region->getChunkData(x & 31, z & 31, readScratch, &readStatus))
+        if (!region->getChunkData(x & 31, z & 31, data, &readStatus))
         {
             if (status != nullptr && readStatus != RegionFile::ReadStatus::Missing)
                 *status = ChunkLoadStatus::ReadError;
-            return nullptr;
+            return false;
         }
 
-        VectorInputStream stream(readScratch);
+        if (status != nullptr)
+            *status = ChunkLoadStatus::Loaded;
+        return true;
+    }
+    catch (const std::exception &e)
+    {
+        MC_LOG_ERROR("chunk", "Failed to read Anvil chunk %d,%d: %s\n", x, z, e.what());
+    }
+    catch (...)
+    {
+        MC_LOG_ERROR("chunk", "Failed to read Anvil chunk %d,%d\n", x, z);
+    }
+
+    data.clear();
+    if (status != nullptr)
+        *status = ChunkLoadStatus::ReadError;
+    return false;
+}
+
+Chunk *AnvilChunkLoader::loadChunkFromData(World *world, int_t x, int_t z,
+                                            std::vector<byte_t> &data,
+                                            ChunkLoadStatus *status)
+{
+    if (status != nullptr)
+        *status = ChunkLoadStatus::ReadError;
+
+    try
+    {
+        VectorInputStream stream(data);
         std::unique_ptr<NBTTagCompound> root;
         {
             PlatformLoadWorkScope nbtWork(PlatformLoadWork::Nbt);
@@ -171,17 +203,15 @@ Chunk *AnvilChunkLoader::loadChunk(World *world, int_t x, int_t z, ChunkLoadStat
     catch (const std::exception &e)
     {
         MC_LOG_ERROR("chunk", "Invalid Anvil chunk %d,%d: %s\n", x, z, e.what());
-        if (status != nullptr)
-            *status = ChunkLoadStatus::ReadError;
-        return nullptr;
     }
     catch (...)
     {
         MC_LOG_ERROR("chunk", "Invalid Anvil chunk %d,%d\n", x, z);
-        if (status != nullptr)
-            *status = ChunkLoadStatus::ReadError;
-        return nullptr;
     }
+
+    if (status != nullptr)
+        *status = ChunkLoadStatus::ReadError;
+    return nullptr;
 }
 
 bool AnvilChunkLoader::isChunkSaved(int_t x, int_t z)

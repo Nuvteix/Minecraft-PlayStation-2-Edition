@@ -17,6 +17,25 @@
 // scheduler construction in ChunkProvider.cpp), so saved chunks stay there too.
 #    define PLATFORM_ASYNC_CHUNK_DECODE                  0
 #    define PLATFORM_ASYNC_NEAREST_FIRST                 0
+#  elif PLATFORM_PS2
+// PS2 uses this worker only to read and inflate saved McRegion/Anvil chunks.
+// Keep the queue deliberately small: each completed read owns an inflated NBT
+// buffer until the game thread publishes it. One dispatch/publish per frame
+// smooths storage work without letting streaming consume the remaining heap.
+#    define PLATFORM_ASYNC_GENERATION_QUEUE_LIMIT        4
+#    define PLATFORM_ASYNC_GENERATION_REQUESTS_PER_TICK  0
+#    define PLATFORM_ASYNC_GENERATION_PUBLISH_PER_TICK   0
+// EE priorities are inverted (smaller = higher). Main runs at 96; 95 lets the
+// I/O worker issue reads while main is runnable, but keeps it below networking.
+#    define PLATFORM_ASYNC_GENERATION_THREAD_PRIORITY    95
+#    define PLATFORM_ASYNC_GENERATION_AFFINITY_MASK      0
+#    define PLATFORM_ASYNC_ISOLATED_BIOME_SOURCE         0
+#    define PLATFORM_ASYNC_GENERATION_REQUESTS_PER_FRAME 1
+#    define PLATFORM_ASYNC_GENERATION_PUBLISH_PER_FRAME  1
+// Keep NBT parsing, Chunk construction and entity creation on the game thread.
+// The worker removes region open/read/inflate stalls only.
+#    define PLATFORM_ASYNC_CHUNK_DECODE                  0
+#    define PLATFORM_ASYNC_NEAREST_FIRST                 1
 #  elif PLATFORM_WII
 #    define PLATFORM_ASYNC_GENERATION_QUEUE_LIMIT        PLATFORM_WII_ASYNC_GENERATION_QUEUE_LIMIT
 #    define PLATFORM_ASYNC_GENERATION_REQUESTS_PER_TICK  PLATFORM_WII_ASYNC_GENERATION_REQUESTS_PER_TICK

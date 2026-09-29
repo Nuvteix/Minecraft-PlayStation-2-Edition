@@ -8,6 +8,7 @@
 #include "net/minecraft/src/ChunkProviderGenerate.h"
 #include "net/minecraft/src/IntCache.h"
 #include "net/minecraft/src/McRegionChunkLoader.h"
+#include "net/minecraft/src/AnvilChunkLoader.h"
 #include "net/minecraft/src/NBTTagCompound.h"
 
 #include <atomic>
@@ -21,6 +22,7 @@ struct ChunkGenerationScheduler::Impl
 {
     IChunkProvider* generator = nullptr;
     McRegionChunkLoader* regionLoader = nullptr;
+    AnvilChunkLoader* anvilLoader = nullptr;
     World* world = nullptr;
     std::atomic<int_t> focusX{0};
     std::atomic<int_t> focusZ{0};
@@ -28,6 +30,9 @@ struct ChunkGenerationScheduler::Impl
     std::deque<std::pair<int_t, int_t>> worker;
     std::unordered_set<std::uint64_t> queued;
     std::deque<Result> results;
+    std::atomic<std::uint32_t> readLoaded{0};
+    std::atomic<std::uint32_t> readMissing{0};
+    std::atomic<std::uint32_t> readErrors{0};
     mutable std::mutex mutex;
     std::condition_variable wake;
     std::atomic_bool stop{false};
@@ -42,11 +47,13 @@ std::uint64_t ChunkGenerationScheduler::key(int_t x, int_t z)
 
 ChunkGenerationScheduler::ChunkGenerationScheduler(IChunkProvider* ownedGenerator,
                                                    McRegionChunkLoader* regionLoader,
-                                                   World* world)
+                                                   World* world,
+                                                   AnvilChunkLoader* anvilLoader)
     : impl_(new Impl())
 {
     impl_->generator = ownedGenerator;
     impl_->regionLoader = regionLoader;
+    impl_->anvilLoader = anvilLoader;
     impl_->world = world;
 }
 
@@ -61,7 +68,7 @@ ChunkGenerationScheduler::~ChunkGenerationScheduler()
 bool ChunkGenerationScheduler::start()
 {
 #if PLATFORM_ASYNC_CHUNK_GENERATION
-    if (impl_->generator == nullptr)
+    if (impl_->generator == nullptr && impl_->regionLoader == nullptr && impl_->anvilLoader == nullptr)
         return false;
     impl_->stop.store(false);
     if (!impl_->thread.start(&ChunkGenerationScheduler::threadEntry, this, 48 * 1024,
@@ -101,7 +108,8 @@ void ChunkGenerationScheduler::stop()
 bool ChunkGenerationScheduler::active() const
 {
 #if PLATFORM_ASYNC_CHUNK_GENERATION
-    return impl_->generator != nullptr && impl_->thread.joinable() && !impl_->stop.load();
+    return (impl_->generator != nullptr || impl_->regionLoader != nullptr || impl_->anvilLoader != nullptr)
+        && impl_->thread.joinable() && !impl_->stop.load();
 #else
     return false;
 #endif
@@ -214,6 +222,19 @@ void ChunkGenerationScheduler::queueSizes(int_t& pending, int_t& completed) cons
 #endif
 }
 
+void ChunkGenerationScheduler::readStats(std::uint32_t& loaded, std::uint32_t& missing, std::uint32_t& errors) const
+{
+#if PLATFORM_ASYNC_CHUNK_GENERATION
+    loaded = impl_->readLoaded.load(std::memory_order_relaxed);
+    missing = impl_->readMissing.load(std::memory_order_relaxed);
+    errors = impl_->readErrors.load(std::memory_order_relaxed);
+#else
+    loaded = 0;
+    missing = 0;
+    errors = 0;
+#endif
+}
+
 void* ChunkGenerationScheduler::threadEntry(void* argument)
 {
     static_cast<ChunkGenerationScheduler*>(argument)->runWorker();
@@ -275,14 +296,17 @@ void ChunkGenerationScheduler::runWorker()
 #endif
         }
 
-        if (impl_->regionLoader != nullptr)
+        if (impl_->regionLoader != nullptr || impl_->anvilLoader != nullptr)
         {
             std::vector<byte_t> data;
             ChunkLoadStatus loadStatus = ChunkLoadStatus::Missing;
-            if (impl_->regionLoader->readChunkData(coord.first, coord.second, data, &loadStatus))
+            const bool loaded = impl_->regionLoader != nullptr
+                ? impl_->regionLoader->readChunkData(coord.first, coord.second, data, &loadStatus)
+                : impl_->anvilLoader->readChunkData(coord.first, coord.second, data, &loadStatus);
+            if (loaded)
             {
 #if PLATFORM_ASYNC_CHUNK_DECODE
-                if (impl_->world != nullptr)
+                if (impl_->regionLoader != nullptr && impl_->world != nullptr)
                 {
                     // Blocks, light and heightmap only; the parsed root travels
                     // with the chunk so publish can add its entities. A decode
@@ -308,6 +332,7 @@ void ChunkGenerationScheduler::runWorker()
                 result.z = coord.second;
                 result.kind = ResultKind::LoadedData;
                 result.data = std::move(data);
+                impl_->readLoaded.fetch_add(1, std::memory_order_relaxed);
                 std::lock_guard<std::mutex> guard(impl_->mutex);
                 impl_->results.push_back(std::move(result));
                 continue;
@@ -318,10 +343,26 @@ void ChunkGenerationScheduler::runWorker()
                 result.x = coord.first;
                 result.z = coord.second;
                 result.kind = ResultKind::ReadError;
+                impl_->readErrors.fetch_add(1, std::memory_order_relaxed);
                 std::lock_guard<std::mutex> guard(impl_->mutex);
                 impl_->results.push_back(std::move(result));
                 continue;
             }
+        }
+
+        // PS2 deliberately constructs the scheduler without a generator. The
+        // worker's job ends after the saved-region probe; a miss is handed back
+        // to the game thread, which already has bounded incremental generation.
+        if (impl_->generator == nullptr)
+        {
+            Result result;
+            result.x = coord.first;
+            result.z = coord.second;
+            result.kind = ResultKind::Missing;
+            impl_->readMissing.fetch_add(1, std::memory_order_relaxed);
+            std::lock_guard<std::mutex> guard(impl_->mutex);
+            impl_->results.push_back(std::move(result));
+            continue;
         }
 
 #if PLATFORM_PC_LEGACY || PLATFORM_WII

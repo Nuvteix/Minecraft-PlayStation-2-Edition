@@ -79,7 +79,10 @@
 #endif
 
 #ifndef PLATFORM_ASYNC_CHUNK_GENERATION
-#  define PLATFORM_ASYNC_CHUNK_GENERATION (PLATFORM_WII || PLATFORM_PC_LEGACY)
+// PS2 reuses the same scheduler for asynchronous saved-region reads only.
+// Missing chunks still go through the existing incremental generator on the
+// game thread; the PS2 worker never runs world generation.
+#  define PLATFORM_ASYNC_CHUNK_GENERATION (PLATFORM_PS2 || PLATFORM_WII || PLATFORM_PC_LEGACY)
 #endif
 
 // OptiFine custom animations (/anim/*.properties, custom_terrain_N.png,

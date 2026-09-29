@@ -99,11 +99,37 @@ ChunkProvider::ChunkProvider(World *world, IChunkLoader *ichunkloader, IChunkPro
 	asyncSavedChunkProbe = nullptr;
 	McRegionChunkLoader *asyncRegionLoader = dynamic_cast<McRegionChunkLoader *>(ichunkloader);
 	AnvilChunkLoader *asyncAnvilLoader = dynamic_cast<AnvilChunkLoader *>(ichunkloader);
-	// The worker reads region files only through McRegionChunkLoader. With the
-	// Anvil loader it runs generation alone (a nullptr region loader), and
-	// requestChunkDetailed() checks the save first so nothing on disk is ever
-	// handed to it. Release worlds are Anvil, so without this branch the
-	// worker never existed and every chunk generated on the game thread.
+#if PLATFORM_PS2
+	// PS2 uses the worker only for saved-region reads (not generation). The
+	// tutorial is Anvil saveVersion 19133 even though its chunks still live
+	// under a directory named "region", so support both concrete loaders.
+	const bool asyncGenerateProvider = dynamic_cast<ChunkProviderGenerate *>(chunkProvider) != nullptr;
+	const bool asyncSavedLoader = asyncRegionLoader != nullptr || asyncAnvilLoader != nullptr;
+	MC_LOG_INFO("chunk",
+		"[PS2] async chunk read init providerGenerate=%d mcRegion=%d anvil=%d world=%d\n",
+		asyncGenerateProvider ? 1 : 0, asyncRegionLoader != nullptr ? 1 : 0,
+		asyncAnvilLoader != nullptr ? 1 : 0, worldObj != nullptr ? 1 : 0);
+	if (asyncGenerateProvider && worldObj != nullptr && asyncSavedLoader)
+	{
+		asyncGenerationScheduler = new ChunkGenerationScheduler(
+			nullptr, asyncRegionLoader, nullptr, asyncAnvilLoader);
+		const bool started = asyncGenerationScheduler->start();
+		MC_LOG_INFO("chunk", "[PS2] async chunk read worker started=%d active=%d\n",
+			started ? 1 : 0, started && asyncGenerationScheduler->active() ? 1 : 0);
+		if (!started)
+		{
+			delete asyncGenerationScheduler;
+			asyncGenerationScheduler = nullptr;
+		}
+	}
+	else
+	{
+		MC_LOG_WARN("chunk", "[PS2] async chunk read disabled: unsupported provider/loader\n");
+	}
+#else
+	// Outside PS2 the worker reads saved data directly only through
+	// McRegionChunkLoader. Anvil remains a save probe while generation runs on
+	// the worker, so saved columns are kept on the game-thread loader path.
 	if (dynamic_cast<ChunkProviderGenerate *>(chunkProvider) != nullptr && worldObj != nullptr &&
 	    (asyncRegionLoader != nullptr || asyncAnvilLoader != nullptr))
 	{
@@ -132,6 +158,7 @@ ChunkProvider::ChunkProvider(World *world, IChunkLoader *ichunkloader, IChunkPro
 			asyncSavedChunkProbe = nullptr;
 		}
 	}
+#endif
 #endif
 }
 
@@ -431,18 +458,31 @@ bool ChunkProvider::drainAsyncGeneratedChunks(int_t budget)
 		{
 			switch (result.kind)
 			{
+			case ChunkGenerationScheduler::ResultKind::Missing:
+#if PLATFORM_INCREMENTAL_CHUNK_GENERATION
+				// The PS2 saved-read worker found no on-disk column. Queue the
+				// existing bounded generator instead of probing the same file again.
+				enqueueGeneration(result.x, result.z);
+#endif
+				break;
 			case ChunkGenerationScheduler::ResultKind::LoadedData:
 			{
-				McRegionChunkLoader* regionLoader = dynamic_cast<McRegionChunkLoader*>(chunkLoader);
-				if (regionLoader != nullptr)
+				ChunkLoadStatus loadStatus = ChunkLoadStatus::ReadError;
+				if (McRegionChunkLoader* regionLoader = dynamic_cast<McRegionChunkLoader*>(chunkLoader))
 				{
-					ChunkLoadStatus loadStatus = ChunkLoadStatus::ReadError;
-					chunk = regionLoader->loadChunkFromData(worldObj, result.x, result.z, result.data, &loadStatus);
-					if (chunk != nullptr)
-						chunk->lastSaveTime = currentWorldTime();
-					else if (loadStatus == ChunkLoadStatus::ReadError)
-						chunk = blankChunk;
+					chunk = regionLoader->loadChunkFromData(
+						worldObj, result.x, result.z, result.data, &loadStatus);
 				}
+				else if (AnvilChunkLoader* anvilLoader = dynamic_cast<AnvilChunkLoader*>(chunkLoader))
+				{
+					chunk = anvilLoader->loadChunkFromData(
+						worldObj, result.x, result.z, result.data, &loadStatus);
+				}
+
+				if (chunk != nullptr)
+					chunk->lastSaveTime = currentWorldTime();
+				else if (loadStatus == ChunkLoadStatus::ReadError)
+					chunk = blankChunk;
 				break;
 			}
 			case ChunkGenerationScheduler::ResultKind::LoadedChunk:
@@ -916,21 +956,36 @@ Chunk *ChunkProvider::provideChunk(int_t i, int_t j)
 #endif
 #if PLATFORM_INCREMENTAL_CHUNK_GENERATION
 			ChunkProviderGenerate *incrementalGenerator = dynamic_cast<ChunkProviderGenerate *>(chunkProvider);
-			if (incrementalGenerator != nullptr)
+			if (incrementalGenerator != nullptr && critical)
+				cancelQueuedGeneration(i, j);
+#endif
+#if PLATFORM_ASYNC_CHUNK_GENERATION && PLATFORM_PS2
+			// Saved chunks are the expensive case on PS2: region I/O and
+			// inflate used to happen synchronously inside prepareChunkInternal().
+			// Probe/read them first on the background I/O worker. Missing chunks are
+			// converted to the normal incremental-generation queue on publish.
+			if (!critical && asyncGenerationScheduler != nullptr && asyncGenerationScheduler->active())
 			{
-				if (critical)
-				{
-					cancelQueuedGeneration(i, j);
-				}
-				else
-				{
-					if (generationQueued.count(key) != 0)
-						return blankChunk;
-					return prepareChunkInternal(i, j, true);
-				}
+#if PLATFORM_INCREMENTAL_CHUNK_GENERATION
+				if (generationQueued.count(key) != 0)
+					return blankChunk;
+#endif
+				const ChunkRequestStatus requestStatus = requestChunkDetailed(i, j);
+				if (requestStatus == ChunkRequestStatus::Accepted ||
+					requestStatus == ChunkRequestStatus::AlreadyQueued ||
+					requestStatus == ChunkRequestStatus::QueueFull)
+					return blankChunk;
 			}
 #endif
-#if PLATFORM_ASYNC_CHUNK_GENERATION
+#if PLATFORM_INCREMENTAL_CHUNK_GENERATION
+			if (incrementalGenerator != nullptr && !critical)
+			{
+				if (generationQueued.count(key) != 0)
+					return blankChunk;
+				return prepareChunkInternal(i, j, true);
+			}
+#endif
+#if PLATFORM_ASYNC_CHUNK_GENERATION && !PLATFORM_PS2
 			// Non-critical terrain can be queued on a low-priority generation service.
 			// Minecraft keeps rendering the current frame until the completed chunk is
 			// published on a later tick.
@@ -1536,9 +1591,26 @@ jstring ChunkProvider::makeString()
 	{
 		int_t pending = 0, completed = 0;
 		asyncGenerationScheduler->queueSizes(pending, completed);
+#if PLATFORM_PS2
+		std::uint32_t readLoaded = 0, readMissing = 0, readErrors = 0;
+		asyncGenerationScheduler->readStats(readLoaded, readMissing, readErrors);
+		result += " ReadActive: " + String::fromInt(asyncGenerationScheduler->active() ? 1 : 0)
+		       + " ReadQ: " + String::fromInt(pending)
+		       + " ReadDone: " + String::fromInt(completed)
+		       + " ReadLoaded: " + String::fromInt(static_cast<int_t>(readLoaded))
+		       + " ReadMiss: " + String::fromInt(static_cast<int_t>(readMissing))
+		       + " ReadErr: " + String::fromInt(static_cast<int_t>(readErrors));
+#else
 		result += " GenQ: " + String::fromInt(pending)
 		       + " GenDone: " + String::fromInt(completed);
+#endif
 	}
+#if PLATFORM_PS2
+	else
+	{
+		result += " ReadActive: 0";
+	}
+#endif
 #endif
 	return result;
 }
