@@ -2,6 +2,7 @@
 #include "GameSettings.h"
 #ifdef PS2_PLATFORM
 #include "ps2/storage/save/Ps2SaveStorage.h"
+#include "lwjgl/Keyboard.h"
 #endif
 #include "Minecraft.h"
 #include "Session.h"
@@ -112,6 +113,10 @@ static int_t parseIntJava(const std::string &value)
 void GameSettings::loadOptions()
 {
 	bool loadedLegacyGuiScaleRestore = false;
+#ifdef PS2_PLATFORM
+	bool loadedLegacyCrafting = false;
+	std::vector<int_t> savedPadBindings(keyBindings.size(), -1);
+#endif
 	std::vector<unsigned char> optionBytes;
 #ifdef PS2_PLATFORM
     if (Ps2SaveStorage::readConfiguration(optionsFile, optionBytes))
@@ -184,10 +189,24 @@ void GameSettings::loadOptions()
 					selectedSkin = value;
 					SkinManager::setSelectedSkinId(value);
 				}
+				if (key == "selectedSkinP2" && !value.empty())
+				{
+					selectedSkinP2 = value;
+					SkinManager::setSelectedSkinIdP2(value);
+				}
 				if (key == "legacyUI")
 					legacyUI = value == "true";
 				if (key == "legacyLook")
 					legacyLook = value == "true";
+				if (key == "legacyCrafting")
+				{
+					legacyCrafting = value == "true";
+#ifdef PS2_PLATFORM
+					loadedLegacyCrafting = true;
+#endif
+				}
+				if (key == "legacyCreative")
+					legacyCreative = value == "true";
 				if (key == "legacyGuiScaleRestore")
 				{
 					legacyGuiScaleRestore = parseIntJava(value);
@@ -203,10 +222,17 @@ void GameSettings::loadOptions()
 					key == "options.aspectRatio" || key == "options.aspectratio")
 					widescreen = value == "true";
 #endif
+				if (key == "splitscreenVertical")
+					splitscreenVertical = (value == "true");
 				for (int_t i = 0; i < (int_t)keyBindings.size(); i++)
 				{
 					if (key == "key_" + keyBindings[i]->keyDescription)
+					{
 						keyBindings[i]->keyCode = parseIntJava(value);
+#ifdef PS2_PLATFORM
+						savedPadBindings[i] = keyBindings[i]->keyCode;
+#endif
+					}
 				}
 				// --- OptiFine (mipmaps excluded) ---
 				if (key == "ofFogFancy")
@@ -356,7 +382,18 @@ void GameSettings::loadOptions()
 	fovSetting = Config::limit(fovSetting, 0.0f, 1.0f);
 
 	ofRenderDistanceFine = Config::limit(ofRenderDistanceFine, 32, Config::getMaxRenderDistanceFine());
+#ifdef PS2_PLATFORM
+	// Existing fork profiles keep their inventory layout until crafting is opted in.
+	if (!loadedLegacyCrafting && !optionBytes.empty())
+		legacyCrafting = false;
+#endif
 	platformGameSettingsFinalizeLoad(*this);
+#ifdef PS2_PLATFORM
+	// Platform defaults fill missing bindings, but must not replace saved pad edits.
+	for (std::size_t i = 0; i < savedPadBindings.size(); ++i)
+		if (savedPadBindings[i] == 0 || savedPadBindings[i] >= lwjgl::Keyboard::KEY_MAX)
+			keyBindings[i]->keyCode = savedPadBindings[i];
+#endif
 	PlatformUserSettings::setControllerDeadzone(controllerDeadzone);
 	syncKeyBindingsToPlatform();
 	syncControllerBindingsToPlatform();
@@ -405,8 +442,8 @@ void GameSettings::saveOptions()
 	std::unordered_set<std::string> knownKeys = {
 		"music", "sound", "invertYMouse", "mouseSensitivity", "fov", "viewDistance",
 		"guiScale", "particles", "bobView", "anaglyph3d", "advancedOpengl", "fpsLimit",
-		"difficulty", "fancyGraphics", "ao", "skin", "lastServer", "lang", "playerName", "selectedSkin", "legacyUI",
-		"legacyLook", "legacyGuiScaleRestore",
+		"difficulty", "fancyGraphics", "ao", "skin", "lastServer", "lang", "playerName", "selectedSkin", "selectedSkinP2", "legacyUI",
+		"legacyLook", "legacyCrafting", "legacyCreative", "legacyGuiScaleRestore",
 		"alternativeControllerLayout", "wiiAlternativeControls", "controllerDeadzone", "wiiStickDeadzone",
 		"ofFogFancy", "ofFogOff", "ofFogStart", "ofLoadFar", "ofPreloadedChunks", "ofOcclusionFancy",
 		"ofSmoothFps", "ofSmoothInput", "ofBrightness", "ofAoLevel", "ofClouds",
@@ -427,6 +464,7 @@ void GameSettings::saveOptions()
 	knownKeys.insert("options.aspectRatio");
 	knownKeys.insert("options.aspectratio");
 #endif
+	knownKeys.insert("splitscreenVertical");
 	platformGameSettingsAddKnownKeys(knownKeys);
 	for (KeyBinding *binding : keyBindings)
 		knownKeys.insert("key_" + binding->keyDescription);
@@ -484,8 +522,11 @@ void GameSettings::saveOptions()
 	printwriter << "lang:" << language << "\n";
 	printwriter << "playerName:" << playerName << "\n";
 	printwriter << "selectedSkin:" << selectedSkin << "\n";
+	printwriter << "selectedSkinP2:" << selectedSkinP2 << "\n";
 	printwriter << "legacyUI:" << (legacyUI ? "true" : "false") << "\n";
 	printwriter << "legacyLook:" << (legacyLook ? "true" : "false") << "\n";
+	printwriter << "legacyCrafting:" << (legacyCrafting ? "true" : "false") << "\n";
+	printwriter << "legacyCreative:" << (legacyCreative ? "true" : "false") << "\n";
 	printwriter << "legacyGuiScaleRestore:" << legacyGuiScaleRestore << "\n";
 	printwriter << "alternativeControllerLayout:" << (alternativeControllerLayout ? "true" : "false") << "\n";
 	printwriter << "controllerDeadzone:" << controllerDeadzone << "\n";
@@ -498,6 +539,7 @@ void GameSettings::saveOptions()
 #if PLATFORM_HAS_ASPECT_RATIO_OPTION
 	printwriter << "widescreen:" << (widescreen ? "true" : "false") << "\n";
 #endif
+	printwriter << "splitscreenVertical:" << (splitscreenVertical ? "true" : "false") << "\n";
 	for (int_t i = 0; i < (int_t)keyBindings.size(); i++)
 		printwriter << "key_" << keyBindings[i]->keyDescription << ":" << keyBindings[i]->keyCode << "\n";
 	// --- OptiFine (mipmaps excluded) ---
@@ -585,4 +627,3 @@ void GameSettings::saveOptions()
 	if (!saved)
 		MC_LOG_WARN("settings", "Failed to save options: %s\n", optionsFile.c_str());
 }
-

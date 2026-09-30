@@ -23,8 +23,18 @@
 
 namespace
 {
+constexpr int_t BUTTON_DONE = 200;
+constexpr int_t BUTTON_ALTERNATIVE_CONTROLS = 201;
+constexpr int_t BUTTON_DEADZONE = 202;
+constexpr int_t BUTTON_ASPECT_RATIO = 203;
+constexpr int_t BUTTON_LEGACY_UI = 204;
+constexpr int_t BUTTON_LEGACY_LOOK = 205;
 constexpr int_t BUTTON_EDIT_PLAYER_NAME = 206;
+constexpr int_t BUTTON_WORLD_STORAGE = 207;
 constexpr int_t BUTTON_CHANGE_SKIN = 208;
+constexpr int_t BUTTON_LEGACY_CRAFTING = 209;
+constexpr int_t BUTTON_LEGACY_CREATIVE = 210;
+constexpr int_t BUTTON_SPLITSCREEN_LAYOUT = 211;
 }
 
 GuiOptiCraftOptions::GuiOptiCraftOptions(GuiScreen *parent, GameSettings *options)
@@ -41,7 +51,7 @@ void GuiOptiCraftOptions::initGui()
 {
 	controlList.clear();
 	delete nameField;
-	int_t buttonRows = 4; // Legacy UI, Legacy Look, Change Skin, Done.
+	int_t buttonRows = 6; // Legacy UI/look/crafting/creative, Change Skin, Done.
 #if PLATFORM_HAS_ASPECT_RATIO_OPTION && !PLATFORM_PS2
 	++buttonRows;
 #endif
@@ -52,7 +62,7 @@ void GuiOptiCraftOptions::initGui()
 	++buttonRows;
 #endif
 #ifdef PS2_PLATFORM
-	++buttonRows;
+	buttonRows += 2; // World Storage and Split Screen.
 #endif
 	nameFieldY = std::min(height / 2 - 20, height - (24 + buttonRows * 20 + 8));
 	nameField = new GuiTextField(this, fontRenderer,
@@ -63,6 +73,17 @@ void GuiOptiCraftOptions::initGui()
 		width / 2 - 100, nameFieldY, 200, 20));
 
 	int_t buttonY = nameFieldY + 24;
+	controlList.push_back(new GuiButton(BUTTON_LEGACY_CRAFTING, width / 2 - 100, buttonY,
+		uiText("Legacy Crafting: ") + std::string(settings->legacyCrafting ? uiText("ON") : uiText("OFF"))));
+	buttonY += 20;
+	controlList.push_back(new GuiButton(BUTTON_LEGACY_CREATIVE, width / 2 - 100, buttonY,
+		uiText("Legacy Creative: ") + std::string(settings->legacyCreative ? uiText("ON") : uiText("OFF"))));
+	buttonY += 20;
+#if PLATFORM_PS2
+	controlList.push_back(new GuiButton(BUTTON_SPLITSCREEN_LAYOUT, width / 2 - 100, buttonY,
+		settings->getKeyBinding(EnumOptions::SPLITSCREEN_LAYOUT)));
+	buttonY += 20;
+#endif
 #if PLATFORM_HAS_ASPECT_RATIO_OPTION && !PLATFORM_PS2
 	controlList.push_back(new GuiButton(203, width / 2 - 100, buttonY,
 		settings->getKeyBinding(EnumOptions::ASPECT_RATIO)));
@@ -85,7 +106,7 @@ void GuiOptiCraftOptions::initGui()
 	buttonY += 20;
 #endif
 #ifdef PS2_PLATFORM
-    controlList.push_back(new GuiButton(207, width / 2 - 100, buttonY, uiText("World Storage...")));
+    controlList.push_back(new GuiButton(BUTTON_WORLD_STORAGE, width / 2 - 100, buttonY, uiText("World Storage...")));
     buttonY += 20;
 #endif
 	controlList.push_back(new GuiButton(BUTTON_CHANGE_SKIN, width / 2 - 100, buttonY, uiText("Change Skin")));
@@ -158,7 +179,7 @@ void GuiOptiCraftOptions::actionPerformed(GuiButton *button)
 	if (button == nullptr || !button->enabled)
 		return;
 #ifdef PS2_PLATFORM
-    if (button->id == 207)
+    if (button->id == BUTTON_WORLD_STORAGE)
     {
         saveIdentity();
         settings->saveOptions();
@@ -191,7 +212,7 @@ void GuiOptiCraftOptions::actionPerformed(GuiButton *button)
 		return;
 	}
 #endif
-	if (button->id == 204)
+	if (button->id == BUTTON_LEGACY_UI)
 	{
 		const int_t previousScale = settings->guiScale;
 		settings->setLegacyUiEnabled(!settings->legacyUI);
@@ -205,7 +226,7 @@ void GuiOptiCraftOptions::actionPerformed(GuiButton *button)
 		button->displayString = legacyUiOptionLabel(settings->legacyUI);
 		return;
 	}
-	if (button->id == 205)
+	if (button->id == BUTTON_LEGACY_LOOK)
 	{
 		settings->legacyLook = !settings->legacyLook;
 		button->displayString = uiText("Legacy Look: ") + std::string(settings->legacyLook ? uiText("ON") : uiText("OFF"));
@@ -214,14 +235,38 @@ void GuiOptiCraftOptions::actionPerformed(GuiButton *button)
 			mc->entityRenderer->updateWorldLightLevels();
 		return;
 	}
+#if PLATFORM_PS2
+	if (button->id == BUTTON_SPLITSCREEN_LAYOUT)
+	{
+		settings->setOptionValue(EnumOptions::SPLITSCREEN_LAYOUT, 1);
+		button->displayString = settings->getKeyBinding(EnumOptions::SPLITSCREEN_LAYOUT);
+		return;
+	}
+#endif
+	if (button->id == BUTTON_LEGACY_CRAFTING)
+	{
+		settings->legacyCrafting = !settings->legacyCrafting;
+		settings->applyLegacyCraftingBindings();
+		button->displayString = uiText("Legacy Crafting: ") + std::string(settings->legacyCrafting ? uiText("ON") : uiText("OFF"));
+		settings->saveOptions();
+		return;
+	}
+	if (button->id == BUTTON_LEGACY_CREATIVE)
+	{
+		settings->legacyCreative = !settings->legacyCreative;
+		button->displayString = uiText("Legacy Creative: ") + std::string(settings->legacyCreative ? uiText("ON") : uiText("OFF"));
+		settings->saveOptions();
+		return;
+	}
 #ifdef WII_PLATFORM
-	if (button->id == 201)
+	if (button->id == BUTTON_ALTERNATIVE_CONTROLS)
 	{
 		settings->alternativeControllerLayout = !settings->alternativeControllerLayout;
 		PlatformUserSettings::setAlternativeControls(settings->alternativeControllerLayout);
 		button->displayString = uiText("Alternative controls: ") +
 			std::string(settings->alternativeControllerLayout ? uiText("ON") : uiText("OFF"));
 		settings->saveOptions();
+		return;
 	}
 #endif
 #if PLATFORM_HAS_CONTROLLER_CALIBRATION && !PLATFORM_PS2
@@ -232,14 +277,14 @@ void GuiOptiCraftOptions::actionPerformed(GuiButton *button)
 		return;
 	}
 #endif
-	if (button->id == 200)
+	if (button->id == BUTTON_DONE)
 		saveAndClose();
 }
 
 void GuiOptiCraftOptions::drawScreen(int_t mouseX, int_t mouseY, float_t partialTick)
 {
 	drawDefaultBackground();
-	drawCenteredString(fontRenderer, PLATFORM_PS2 ? uiText("Game Options") : uiText("OptiCraft Options"), width / 2, 30, 0xffffff);
+	drawCenteredString(fontRenderer, PLATFORM_PS2 ? uiText("Game Options") : uiText("OptiCraft Options"), width / 2, std::min(30, nameFieldY - 26), 0xffffff);
 	drawString(fontRenderer, uiText("Player name"), width / 2 - 100, nameFieldY - 12, 0xa0a0a0);
 #ifdef WII_PLATFORM
 	if (nameFieldY >= 76)

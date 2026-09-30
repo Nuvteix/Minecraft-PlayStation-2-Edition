@@ -35,14 +35,19 @@ constexpr int_t BUTTON_ALTERNATIVE_CONTROLS = 601;
 constexpr int_t BUTTON_DEADZONE = 602;
 constexpr int_t BUTTON_DONE = 600;
 constexpr int_t BUTTON_EDIT_PLAYER_NAME = 606;
+constexpr int_t BUTTON_WORLD_STORAGE = 607;
 constexpr int_t BUTTON_CHANGE_SKIN = 608;
+constexpr int_t BUTTON_SPLITSCREEN_LAYOUT = 609;
+constexpr int_t BUTTON_LEGACY_CRAFTING = 610;
+constexpr int_t BUTTON_LEGACY_CREATIVE = 611;
 
 }
 
 LegacyHeritageOptions::LegacyHeritageOptions(GuiScreen *parent, GameSettings *settingsValue,
     LegacyOptionsBackgroundMode backgroundModeValue)
     : LegacyOptionsScreen(parent, settingsValue, backgroundModeValue), nameField(nullptr), legacyUiCheckbox(nullptr),
-      legacyLookCheckbox(nullptr), alternativeControlsCheckbox(nullptr)
+      legacyLookCheckbox(nullptr), legacyCraftingCheckbox(nullptr), legacyCreativeCheckbox(nullptr),
+      alternativeControlsCheckbox(nullptr)
 {
 }
 
@@ -54,11 +59,14 @@ LegacyHeritageOptions::~LegacyHeritageOptions()
 
 void LegacyHeritageOptions::initGui()
 {
-    int_t rowCount = 6; // name label/field, Legacy UI/Look, Change Skin, Done
+    int_t rowCount = 8; // name label/field, UI/look/crafting/creative, skin, done
 #ifdef PS2_PLATFORM
     ++rowCount;
 #endif
 #if PLATFORM_HAS_ASPECT_RATIO_OPTION && !PLATFORM_PS2
+    ++rowCount;
+#endif
+#if PLATFORM_PS2
     ++rowCount;
 #endif
 #ifdef WII_PLATFORM
@@ -100,6 +108,11 @@ void LegacyHeritageOptions::initGui()
         settings->getKeyBinding(EnumOptions::ASPECT_RATIO)));
 #endif
 
+#if PLATFORM_PS2
+    controlList.push_back(new LegacyGuiButton(BUTTON_SPLITSCREEN_LAYOUT, x, legacyLayout.rowY(row++), w, h,
+        settings->getKeyBinding(EnumOptions::SPLITSCREEN_LAYOUT)));
+#endif
+
     legacyUiCheckbox = new LegacyOptionCheckbox(BUTTON_LEGACY_UI, x, legacyLayout.rowY(row++), w, h,
         uiText("Legacy UI"), settings->legacyUI);
     controlList.push_back(legacyUiCheckbox);
@@ -107,6 +120,14 @@ void LegacyHeritageOptions::initGui()
     legacyLookCheckbox = new LegacyOptionCheckbox(BUTTON_LEGACY_LOOK, x, legacyLayout.rowY(row++), w, h,
         uiText("Legacy Look"), settings->legacyLook);
     controlList.push_back(legacyLookCheckbox);
+
+    legacyCraftingCheckbox = new LegacyOptionCheckbox(BUTTON_LEGACY_CRAFTING, x, legacyLayout.rowY(row++), w, h,
+        uiText("Legacy Crafting"), settings->legacyCrafting);
+    controlList.push_back(legacyCraftingCheckbox);
+
+    legacyCreativeCheckbox = new LegacyOptionCheckbox(BUTTON_LEGACY_CREATIVE, x, legacyLayout.rowY(row++), w, h,
+        uiText("Legacy Creative"), settings->legacyCreative);
+    controlList.push_back(legacyCreativeCheckbox);
 
 #ifdef WII_PLATFORM
     alternativeControlsCheckbox = new LegacyOptionCheckbox(BUTTON_ALTERNATIVE_CONTROLS, x,
@@ -120,7 +141,7 @@ void LegacyHeritageOptions::initGui()
 #endif
 
 #ifdef PS2_PLATFORM
-    controlList.push_back(new LegacyGuiButton(607, x, legacyLayout.rowY(row++), w, h, uiText("World Storage")));
+    controlList.push_back(new LegacyGuiButton(BUTTON_WORLD_STORAGE, x, legacyLayout.rowY(row++), w, h, uiText("World Storage")));
 #endif
     controlList.push_back(new LegacyGuiButton(BUTTON_CHANGE_SKIN, x, legacyLayout.rowY(row++), w, h, uiText("Change Skin")));
     controlList.push_back(new LegacyGuiButton(BUTTON_DONE, x, legacyLayout.rowY(row), w, h, uiText("Done")));
@@ -202,7 +223,7 @@ void LegacyHeritageOptions::actionPerformed(GuiButton *button)
         return;
     }
 #ifdef PS2_PLATFORM
-    if (button->id == 607)
+    if (button->id == BUTTON_WORLD_STORAGE)
     {
         settings->saveOptions();
         mc->displayGuiScreen(new GuiWorldStorage(this, settings));
@@ -219,6 +240,14 @@ void LegacyHeritageOptions::actionPerformed(GuiButton *button)
         return;
     }
 #endif
+
+    if (button->id == BUTTON_SPLITSCREEN_LAYOUT)
+    {
+        settings->setOptionValue(EnumOptions::SPLITSCREEN_LAYOUT, 1);
+        button->displayString = settings->getKeyBinding(EnumOptions::SPLITSCREEN_LAYOUT);
+        settings->saveOptions();
+        return;
+    }
 
     if (button->id == BUTTON_LEGACY_UI)
     {
@@ -244,6 +273,25 @@ void LegacyHeritageOptions::actionPerformed(GuiButton *button)
         settings->saveOptions();
         if (mc != nullptr && mc->entityRenderer != nullptr)
             mc->entityRenderer->updateWorldLightLevels();
+        return;
+    }
+
+    if (button->id == BUTTON_LEGACY_CRAFTING)
+    {
+        settings->legacyCrafting = !settings->legacyCrafting;
+        settings->applyLegacyCraftingBindings();
+        if (legacyCraftingCheckbox != nullptr)
+            legacyCraftingCheckbox->setChecked(settings->legacyCrafting);
+        settings->saveOptions();
+        return;
+    }
+
+    if (button->id == BUTTON_LEGACY_CREATIVE)
+    {
+        settings->legacyCreative = !settings->legacyCreative;
+        if (legacyCreativeCheckbox != nullptr)
+            legacyCreativeCheckbox->setChecked(settings->legacyCreative);
+        settings->saveOptions();
         return;
     }
 

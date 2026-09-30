@@ -194,6 +194,7 @@ void StringTranslate::setLanguage(const std::string &language)
     for (const auto &alias : aliases)
         if (translateTable.find(alias[1]) != translateTable.end())
             englishUiKeys[alias[0]] = alias[1];
+    englishUiKeys["Crafting"] = "key.crafting";
     currentLanguage = "en_US";
     if (language != "en_US" && loadLanguageFile("/lang/" + language + ".lang"))
         currentLanguage = language;
@@ -231,13 +232,39 @@ std::string StringTranslate::translateUi(const std::string &english)
         ? "..." : (english.size() >= 2 && english.compare(english.size() - 2, 2, ": ") == 0 ? ": " : "");
     if (!suffix.empty())
         return translateUi(english.substr(0, english.size() - suffix.size())) + suffix;
+    if (currentLanguage.rfind("es_", 0) == 0)
+    {
+        if (english == "Default Skins") return "Skins Originales";
+        if (english == "Custom") return "Personalizado";
+        if (english == "Choose 2nd Player Skin") return "Skin 2do Jugador";
+        if (english == "Load Skins") return "Cargar Skins";
+        if (english == "Delete Skin") return "Eliminar Skin";
+        if (english == "Player 2") return "Jugador 2";
+        if (english == "PLAYER 2 SKIN SELECTOR") return "SELECTOR DE SKIN: JUGADOR 2";
+        if (english == "World Size: Old (256x256)") return "Tamaño: Antiguo (256x256)";
+        if (english == "World Size: Legacy 864x864") return "Tamaño: Legacy 864x864";
+        if (english == "World Size: Infinite") return "Tamaño: Infinito";
+        if (english == "Split Screen") return "Pantalla dividida";
+        if (english == "Horizontal") return "Horizontal";
+        if (english == "Vertical") return "Vertical";
+        if (english == "Toggle") return "Alternar";
+        if (english == "Delete") return "Eliminar";
+    }
     return english;
 }
 
 std::string StringTranslate::translateKey(const std::string &s)
 {
     auto it = translateTable.find(s);
-    return it != translateTable.end() ? it->second : s;
+    if (it != translateTable.end())
+        return it->second;
+    if (s == "key.crafting")
+    {
+        if (currentLanguage.rfind("es_", 0) == 0)
+            return "Fabricar";
+        return "Crafting";
+    }
+    return s;
 }
 
 std::string StringTranslate::translateKeyFormat(const std::string &s, const std::vector<std::string> &args)

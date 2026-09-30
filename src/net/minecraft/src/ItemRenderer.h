@@ -20,6 +20,7 @@ public:
     void resetEquippedProgress();
     void resetEquippedProgressAfterBlockPlace();
     void resetEquippedProgressAfterItemUse();
+    void refreshItem();
 
 private:
     void emitItemIn2DGeometry(Tessellator* tessellator, float maxU, float minV, float minU, float maxV);

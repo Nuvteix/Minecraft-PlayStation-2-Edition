@@ -164,6 +164,8 @@ static bool isActiveClientEntity(Entity *entity)
     Minecraft *mc = Minecraft::getMinecraft();
     return mc != nullptr &&
            (static_cast<void *>(mc->thePlayer) == static_cast<void *>(entity) ||
+            static_cast<void *>(mc->thePlayerOne) == static_cast<void *>(entity) ||
+            static_cast<void *>(mc->thePlayer2) == static_cast<void *>(entity) ||
             static_cast<void *>(mc->renderViewEntity) == static_cast<void *>(entity));
 }
 
@@ -633,6 +635,14 @@ void World::generateSpawnPoint()
         spawnX = position->x;
         spawnZ = position->z;
         delete position;
+    }
+
+    if (isLimitedWorld())
+    {
+        if (spawnX < -64) spawnX = -64;
+        else if (spawnX > 64) spawnX = 64;
+        if (spawnZ < -64) spawnZ = -64;
+        else if (spawnZ > 64) spawnZ = 64;
     }
 
 #if defined(PS2_PLATFORM)
@@ -2560,6 +2570,8 @@ MovingObjectPosition *World::rayTraceBlocks_do_do(Vec3D *start, Vec3D *end, bool
 
 void World::playSoundAtEntity(Entity* entity, const jstring& soundName, float volume, float pitch)
 {
+    if (entity == nullptr)
+        return;
     for (size_t i = 0; i < worldAccesses.size(); i++)
     {
         worldAccesses[i]->playSound(soundName, entity->posX, entity->posY - (double)entity->yOffset, entity->posZ, volume, pitch);
@@ -6117,6 +6129,12 @@ WorldInfo* World::getWorldInfo()
 {
     return worldInfo;
 }
+
+bool World::isLimitedWorld() const
+{
+    return worldInfo != nullptr && worldInfo->isLimitedWorld();
+}
+
 
 void World::updateAllPlayersSleepingFlag()
 {

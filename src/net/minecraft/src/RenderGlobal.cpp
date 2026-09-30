@@ -2329,6 +2329,31 @@ bool RenderGlobal::updateRenderers(EntityLiving *entityliving, bool flag)
 {
 #if PLATFORM_PS2
 	const bool ps2MeshPressure = trimPs2MeshCache(entityliving);
+#if PLATFORM_CULL_FAR_SUBTERRANEAN
+	if (entityliving != nullptr && worldRenderers != nullptr)
+	{
+		const int_t viewerChunkX = JavaArithmetic::intShr(MathHelper::floor_double(entityliving->posX), 4);
+		const int_t viewerChunkZ = JavaArithmetic::intShr(MathHelper::floor_double(entityliving->posZ), 4);
+		const double viewerY = entityliving->posY;
+		const int_t totalRenderers = renderChunksWide * renderChunksTall * renderChunksDeep;
+		for (int_t i = 0; i < totalRenderers; ++i)
+		{
+			WorldRenderer *wr = worldRenderers[i];
+			if (wr != nullptr && wr->ps2SkippedAsFarSubterranean)
+			{
+				const int_t wrChunkX = JavaArithmetic::intShr(wr->posX, 4);
+				const int_t wrChunkZ = JavaArithmetic::intShr(wr->posZ, 4);
+				const int_t distChunk = std::max(std::abs(wrChunkX - viewerChunkX), std::abs(wrChunkZ - viewerChunkZ));
+				if (distChunk < 2 || viewerY < 50.0)
+				{
+					wr->ps2SkippedAsFarSubterranean = false;
+					wr->markDirty();
+					enqueueRendererUpdate(wr);
+				}
+			}
+		}
+	}
+#endif
 #endif
 	if (worldRenderersToUpdate.empty())
 		return true;
@@ -3371,9 +3396,9 @@ void RenderGlobal::playAuxSFX(EntityPlayer *entityplayer, int_t i, int_t j, int_
 			Block *block = Block::blocksList[blockId];
 			mc->sndManager->playSound(block->stepSound->getBreakSound(), (float)j + 0.5f, (float)k + 0.5f, (float)l + 0.5f,
 			                          (block->stepSound->getVolume() + 1.0f) / 2.0f, block->stepSound->getPitch() * 0.8f);
+			if (mc->effectRenderer != nullptr)
+				mc->effectRenderer->addBlockDestroyEffects(j, k, l, blockId, (i1 >> 12) & 255);
 		}
-		if (mc->effectRenderer != nullptr)
-			mc->effectRenderer->addBlockDestroyEffects(j, k, l, blockId, (i1 >> 12) & 255);
 		break;
 	}
 

@@ -91,7 +91,7 @@ GameSettings::~GameSettings()
 	keyBindings.clear();
 	keyBindAttack = keyBindUseItem = nullptr;
 	keyBindForward = keyBindLeft = keyBindBack = keyBindRight = nullptr;
-	keyBindJump = keyBindInventory = keyBindDrop = keyBindChat = nullptr;
+	keyBindJump = keyBindInventory = keyBindCrafting = keyBindDrop = keyBindChat = nullptr;
 	keyBindPlayerList = keyBindPickBlock = nullptr;
 	keyBindToggleFog = keyBindSneak = ofKeyBindZoom = nullptr;
 }
@@ -120,16 +120,18 @@ void GameSettings::setDefaults()
 	keyBindRight = new KeyBinding("key.right", 32);
 	keyBindJump = new KeyBinding("key.jump", 57);
 	keyBindInventory = new KeyBinding("key.inventory", 18);
+	keyBindCrafting = new KeyBinding("key.crafting", lwjgl::Keyboard::KEY_C);
 	keyBindDrop = new KeyBinding("key.drop", 16);
 	keyBindChat = new KeyBinding("key.chat", 20);
 	keyBindPlayerList = new KeyBinding("key.playerlist", 15);
 	keyBindPickBlock = new KeyBinding("key.pickItem", -98);
 	keyBindToggleFog = new KeyBinding("key.fog", 33);
 	keyBindSneak = new KeyBinding("key.sneak", 42);
+	legacyCrafting = true;
 	platformGameSettingsInitialize(*this);
 	keyBindings = {
 		keyBindAttack, keyBindUseItem, keyBindForward, keyBindLeft, keyBindBack, keyBindRight,
-		keyBindJump, keyBindSneak, keyBindDrop, keyBindInventory, keyBindChat, keyBindPlayerList,
+		keyBindJump, keyBindSneak, keyBindDrop, keyBindInventory, keyBindCrafting, keyBindChat, keyBindPlayerList,
 		keyBindPickBlock, keyBindToggleFog
 	};
 	mc = nullptr;
@@ -144,12 +146,15 @@ void GameSettings::setDefaults()
 	language = "en_US";
 	playerName = "Player";
 	selectedSkin = "LegacySteve";
+	selectedSkinP2 = "TennisSteve";
 	legacyUI = legacyUiDefaultEnabled();
 	legacyLook = legacyLookDefaultEnabled();
+	legacyCreative = true;
 	alternativeControllerLayout = false;
 	controllerDeadzone = 0.20f;
 	wiiDeflicker = true;
 	widescreen = ConsoleAspectRatio::getDefaultWidescreen();
+	splitscreenVertical = false;
 	field_22275_C = false;
 	smoothCamera = false;
 	field_22273_E = false;
@@ -298,6 +303,14 @@ void GameSettings::syncControllerBindingsToPlatform()
 	platformGameSettingsSyncControllerBindings(*this);
 }
 
+void GameSettings::applyLegacyCraftingBindings()
+{
+    platformGameSettingsApplyLegacyCrafting(*this);
+    KeyBinding::resetKeyBindingArrayAndHash();
+    syncKeyBindingsToPlatform();
+    syncControllerBindingsToPlatform();
+}
+
 void GameSettings::reloadChunkRenderers()
 {
 	if (mc != nullptr && mc->renderGlobal != nullptr)
@@ -426,6 +439,8 @@ void GameSettings::resetControlBindingsToDefaults()
 	keyBindRight->keyCode = 32;
 	keyBindJump->keyCode = 57;
 	keyBindInventory->keyCode = 18;
+	if (keyBindCrafting != nullptr)
+		keyBindCrafting->keyCode = lwjgl::Keyboard::KEY_C;
 	keyBindDrop->keyCode = 16;
 	keyBindChat->keyCode = 20;
 	keyBindPlayerList->keyCode = 15;
@@ -453,28 +468,39 @@ void GameSettings::setOptionFloatValue(const EnumOptions *enumoptions, float f)
 		mouseSensitivity = f;
 	if (enumoptions == EnumOptions::FOV)
 		fovSetting = f;
-	// --- OptiFine ---
 	if (enumoptions == EnumOptions::BRIGHTNESS)
 	{
-		ofBrightness = f;
-		updateWorldLightLevels();
+		if (ofBrightness != f)
+		{
+			ofBrightness = f;
+			updateWorldLightLevels();
+		}
 	}
 	if (enumoptions == EnumOptions::CLOUD_HEIGHT)
 		ofCloudsHeight = f;
 	if (enumoptions == EnumOptions::AO_LEVEL)
 	{
-		ofAoLevel = f;
-		ambientOcclusion = (ofAoLevel > 0.0f); // 'k'
-		invalidateChunkMeshes();
+		if (ofAoLevel != f)
+		{
+			const bool wasAoEnabled = Minecraft::isAmbientOcclusionEnabled();
+			ofAoLevel = f;
+			ambientOcclusion = (ofAoLevel > 0.0f);
+			if (wasAoEnabled || Minecraft::isAmbientOcclusionEnabled())
+				invalidateChunkMeshes();
+		}
 	}
 	if (enumoptions == EnumOptions::RENDER_DISTANCE_FINE)
 	{
 		const int_t maxRenderDistance = Config::getMaxRenderDistanceFine();
-		ofRenderDistanceFine = 32 + (int_t)(f * (float)(maxRenderDistance - 32));
-		ofRenderDistanceFine = (ofRenderDistanceFine >> 4) << 4;
-		ofRenderDistanceFine = Config::limit(ofRenderDistanceFine, 32, maxRenderDistance);
-		platformGameSettingsUpdateRenderDistanceFromFine(ofRenderDistanceFine, renderDistance);
-		reloadChunkRenderers();
+		int_t newDistance = 32 + (int_t)(f * (float)(maxRenderDistance - 32));
+		newDistance = (newDistance >> 4) << 4;
+		newDistance = Config::limit(newDistance, 32, maxRenderDistance);
+		if (newDistance != ofRenderDistanceFine)
+		{
+			ofRenderDistanceFine = newDistance;
+			platformGameSettingsUpdateRenderDistanceFromFine(ofRenderDistanceFine, renderDistance);
+			reloadChunkRenderers();
+		}
 	}
 	if (audioOption && mc != nullptr && mc->sndManager != nullptr)
 		mc->sndManager->onSoundOptionsChanged();
@@ -522,7 +548,6 @@ void GameSettings::setOptionValue(const EnumOptions *enumoptions, int_t i)
 		particleSetting = (particleSetting + i + 3) % 3;
 	if (enumoptions == EnumOptions::VIEW_BOBBING)
 		viewBobbing = !viewBobbing;
-	// ADVANCED_OPENGL = occlusion culling (OFF -> Fast -> Fancy -> OFF), campo 'h'
 	if (enumoptions == EnumOptions::ADVANCED_OPENGL)
 	{
 		if (!Config::isOcclusionAvailable())
@@ -563,38 +588,40 @@ void GameSettings::setOptionValue(const EnumOptions *enumoptions, int_t i)
 	}
 	if (enumoptions == EnumOptions::AMBIENT_OCCLUSION)
 	{
+		const bool wasAoEnabled = Minecraft::isAmbientOcclusionEnabled();
 		ambientOcclusion = !ambientOcclusion;
-		invalidateChunkMeshes();
+#if PLATFORM_PS2
+		ofAoLevel = ambientOcclusion ? 0.25f : 0.0f;
+#else
+		ofAoLevel = ambientOcclusion ? 1.0f : 0.0f;
+#endif
+		if (wasAoEnabled || Minecraft::isAmbientOcclusionEnabled())
+			invalidateChunkMeshes();
 	}
 #if PLATFORM_HAS_ASPECT_RATIO_OPTION
 	if (enumoptions == EnumOptions::ASPECT_RATIO)
 		widescreen = !widescreen;
 #endif
-	// --- OptiFine ---
+	if (enumoptions == EnumOptions::SPLITSCREEN_LAYOUT)
+		splitscreenVertical = !splitscreenVertical;
 	if (enumoptions == EnumOptions::FOG_FANCY)
 	{
-		// Ciclo tri-estado: Fast -> Fancy -> OFF -> Fast.
-		// (Si Fancy no esta disponible: Fast -> OFF -> Fast.)
 		if (ofFogOff)
 		{
-			// OFF -> Fast
 			ofFogOff = false;
 			ofFogFancy = false;
 		}
 		else if (ofFogFancy)
 		{
-			// Fancy -> OFF
 			ofFogOff = true;
 			ofFogFancy = false;
 		}
 		else if (Config::isFancyFogAvailable())
 		{
-			// Fast -> Fancy
 			ofFogFancy = true;
 		}
 		else
 		{
-			// Fast -> OFF (Fancy no disponible)
 			ofFogOff = true;
 		}
 	}
@@ -885,7 +912,9 @@ std::string GameSettings::getKeyBinding(const EnumOptions *enumoptions)
 {
 	std::string s = enumoptions == EnumOptions::ASPECT_RATIO
 		? uiText("Aspect Ratio") + ": "
-		: uiText(translateKey(enumoptions->getEnumString())) + ": ";
+		: (enumoptions == EnumOptions::SPLITSCREEN_LAYOUT
+			? uiText("Split Screen") + ": "
+			: uiText(translateKey(enumoptions->getEnumString())) + ": ");
 	if (enumoptions->getEnumFloat())
 	{
 		float f = getOptionFloatValue(enumoptions);
@@ -920,7 +949,7 @@ std::string GameSettings::getKeyBinding(const EnumOptions *enumoptions)
 			return s + translateKey("options.off");
 		return s + std::to_string((int_t)(f * 100.0f)) + "%";
 	}
-	// ADVANCED_OPENGL = occlusion (OFF / Fast / Fancy), antes del branch booleano
+
 	if (enumoptions == EnumOptions::ADVANCED_OPENGL)
 	{
 		if (!advancedOpengl)
@@ -954,7 +983,9 @@ std::string GameSettings::getKeyBinding(const EnumOptions *enumoptions)
 	}
 	if (enumoptions == EnumOptions::ASPECT_RATIO)
 		return s + (widescreen ? "16:9" : "4:3");
-	// --- OptiFine ---
+	if (enumoptions == EnumOptions::SPLITSCREEN_LAYOUT)
+		return s + (splitscreenVertical ? uiText("Vertical") : uiText("Horizontal"));
+
 	if (enumoptions == EnumOptions::FOG_FANCY)
 		return s + (ofFogOff ? uiText("OFF") : (ofFogFancy ? uiText("Fancy") : uiText("Fast")));
 	if (enumoptions == EnumOptions::FOG_START)
