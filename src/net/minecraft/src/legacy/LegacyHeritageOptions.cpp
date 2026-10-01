@@ -160,6 +160,7 @@ void LegacyHeritageOptions::saveIdentity()
 
 void LegacyHeritageOptions::saveAndClose()
 {
+    settings->saveOptions();
     returnToParent();
 }
 
@@ -183,7 +184,7 @@ void LegacyHeritageOptions::keyTyped(char_t c, int_t key)
         if (c == '\r' || key == lwjgl::Keyboard::KEY_RETURN)
         {
             saveIdentity();
-            settings->saveOptions();
+            //settings->saveOptions(); Deferred to menu exit to avoid I/O lag
             nameField->setFocused(false);
             return;
         }
@@ -218,14 +219,14 @@ void LegacyHeritageOptions::actionPerformed(GuiButton *button)
     saveIdentity();
     if (button->id == BUTTON_CHANGE_SKIN)
     {
-        settings->saveOptions();
+        //settings->saveOptions(); Deferred to menu exit to avoid I/O lag
         mc->displayGuiScreen(new GuiSkinSelector(this));
         return;
     }
 #ifdef PS2_PLATFORM
     if (button->id == BUTTON_WORLD_STORAGE)
     {
-        settings->saveOptions();
+        //settings->saveOptions(); Deferred to menu exit to avoid I/O lag
         mc->displayGuiScreen(new GuiWorldStorage(this, settings));
         return;
     }
@@ -245,7 +246,7 @@ void LegacyHeritageOptions::actionPerformed(GuiButton *button)
     {
         settings->setOptionValue(EnumOptions::SPLITSCREEN_LAYOUT, 1);
         button->displayString = settings->getKeyBinding(EnumOptions::SPLITSCREEN_LAYOUT);
-        settings->saveOptions();
+        //settings->saveOptions(); Deferred to menu exit to avoid I/O lag
         return;
     }
 
@@ -253,7 +254,7 @@ void LegacyHeritageOptions::actionPerformed(GuiButton *button)
     {
         const int_t previousScale = settings->guiScale;
         settings->setLegacyUiEnabled(!settings->legacyUI);
-        settings->saveOptions();
+        //settings->saveOptions(); Deferred to menu exit to avoid I/O lag
         if (settings->guiScale != previousScale && mc != nullptr)
         {
             ScaledResolution sr(settings, mc->displayWidth, mc->displayHeight);
@@ -270,7 +271,7 @@ void LegacyHeritageOptions::actionPerformed(GuiButton *button)
         settings->legacyLook = !settings->legacyLook;
         if (legacyLookCheckbox != nullptr)
             legacyLookCheckbox->setChecked(settings->legacyLook);
-        settings->saveOptions();
+        //settings->saveOptions(); Deferred to menu exit to avoid I/O lag
         if (mc != nullptr && mc->entityRenderer != nullptr)
             mc->entityRenderer->updateWorldLightLevels();
         return;
@@ -282,7 +283,7 @@ void LegacyHeritageOptions::actionPerformed(GuiButton *button)
         settings->applyLegacyCraftingBindings();
         if (legacyCraftingCheckbox != nullptr)
             legacyCraftingCheckbox->setChecked(settings->legacyCrafting);
-        settings->saveOptions();
+        //settings->saveOptions(); Deferred to menu exit to avoid I/O lag
         return;
     }
 
@@ -291,7 +292,7 @@ void LegacyHeritageOptions::actionPerformed(GuiButton *button)
         settings->legacyCreative = !settings->legacyCreative;
         if (legacyCreativeCheckbox != nullptr)
             legacyCreativeCheckbox->setChecked(settings->legacyCreative);
-        settings->saveOptions();
+        //settings->saveOptions(); Deferred to menu exit to avoid I/O lag
         return;
     }
 
@@ -302,7 +303,7 @@ void LegacyHeritageOptions::actionPerformed(GuiButton *button)
         PlatformUserSettings::setAlternativeControls(settings->alternativeControllerLayout);
         if (alternativeControlsCheckbox != nullptr)
             alternativeControlsCheckbox->setChecked(settings->alternativeControllerLayout);
-        settings->saveOptions();
+        //settings->saveOptions(); Deferred to menu exit to avoid I/O lag
         return;
     }
 #endif
@@ -310,7 +311,7 @@ void LegacyHeritageOptions::actionPerformed(GuiButton *button)
 #if PLATFORM_HAS_CONTROLLER_CALIBRATION && !PLATFORM_PS2
     if (button->id == BUTTON_DEADZONE)
     {
-        settings->saveOptions();
+        //settings->saveOptions(); Deferred to menu exit to avoid I/O lag
         mc->displayGuiScreen(new GuiDeadzoneSettings(this, settings));
         return;
     }
