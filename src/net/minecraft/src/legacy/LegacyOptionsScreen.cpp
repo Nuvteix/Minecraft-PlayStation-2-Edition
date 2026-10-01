@@ -191,8 +191,6 @@ void LegacyOptionsScreen::updateScreen()
 
 void LegacyOptionsScreen::returnToParent()
 {
-    if (settings != nullptr)
-        settings->saveOptions();
     mc->displayGuiScreen(parentScreen);
 }
 

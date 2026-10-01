@@ -22,6 +22,7 @@ jobs:
         with:
           fetch-depth: 1
           submodules: false
+          token: ${{ secrets.PAT_TOKEN }}
 
       - name: Install build tools
         run: sudo apt update && sudo apt install -y ninja-build ccache

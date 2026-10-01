@@ -87,33 +87,33 @@ void GuiOptions::actionPerformed(GuiButton *button)
 	}
 	if (button->id == 101)
 	{
-		mc->gameSettings->saveOptions();
+		//mc->gameSettings->saveOptions(); Deferred to menu exit to avoid I/O lag
 		mc->displayGuiScreen(new GuiVideoSettings(this, options));
 	}
 	if (button->id == 100)
 	{
-		mc->gameSettings->saveOptions();
+		//mc->gameSettings->saveOptions(); Deferred to menu exit to avoid I/O lag
 		mc->displayGuiScreen(new GuiControls(this, options));
 	}
 	if (button->id == 103)
 	{
-		mc->gameSettings->saveOptions();
+		//mc->gameSettings->saveOptions(); Deferred to menu exit to avoid I/O lag
 		mc->displayGuiScreen(new GuiLanguage(this, options));
 	}
 	if (button->id == 102)
 	{
-		mc->gameSettings->saveOptions();
+		//mc->gameSettings->saveOptions(); Deferred to menu exit to avoid I/O lag
 		mc->displayGuiScreen(new GuiOptiCraftOptions(this, options));
 	}
 	if (button->id == 105)
 	{
-		options->saveOptions();
+		//options->saveOptions(); Deferred to menu exit to avoid I/O lag
 		mc->displayGuiScreen(new GuiTexturePacks(this));
 		return;
 	}
 	if (button->id == 200)
 	{
-		mc->gameSettings->saveOptions();
+		//mc->gameSettings->saveOptions(); Deferred to menu exit to avoid I/O lag
 		mc->displayGuiScreen(parentScreen);
 	}
 }
