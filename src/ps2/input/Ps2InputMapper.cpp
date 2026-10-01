@@ -193,7 +193,7 @@ void updateMenu(const Ps2PadSnapshot& primary, bool specializedMenuNavigation) {
         if (!slotNav && (p.held & PAD_RIGHT)) dx += dpadSpeed * dt;
         const float menuX = Ps2AnalogFilter::apply(p.leftX);
         const float menuY = Ps2AnalogFilter::apply(p.leftY);
-        // Ps2AnalogFilter already applies the player's configured deadzone.
+        // Ps2AnalogFilter already applies the player's configured deadzone. 
         // Applying the old 0.70 menu threshold after it made the cursor appear
         // unresponsive until the stick was almost fully deflected.
         dx += menuX * analogSpeed * dt;
