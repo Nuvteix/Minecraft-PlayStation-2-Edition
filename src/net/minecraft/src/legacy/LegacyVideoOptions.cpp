@@ -140,18 +140,18 @@ void LegacyVideoOptions::actionPerformed(GuiButton *button)
         return;
     case BUTTON_CLOUDS:
         settings->ofClouds = legacyCloudsToggledValue(settings->ofClouds);
-        settings->saveOptions();
+        //settings->saveOptions(); Deferred to menu exit to avoid I/O lag
         syncCheckboxes();
         return;
     case BUTTON_FOG:
         settings->ofFogOff = legacyFogToggledOff(settings->ofFogOff);
-        settings->saveOptions();
+        //settings->saveOptions(); Deferred to menu exit to avoid I/O lag
         syncCheckboxes();
         return;
     case BUTTON_DEFLICKER:
         settings->wiiDeflicker = !settings->wiiDeflicker;
         PlatformUserSettings::setDisplayDeflicker(settings->wiiDeflicker);
-        settings->saveOptions();
+        //settings->saveOptions(); Deferred to menu exit to avoid I/O lag
         syncCheckboxes();
         return;
 #if PLATFORM_PS2

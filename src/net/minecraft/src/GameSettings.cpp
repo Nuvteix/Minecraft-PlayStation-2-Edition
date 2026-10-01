@@ -504,7 +504,7 @@ void GameSettings::setOptionFloatValue(const EnumOptions *enumoptions, float f)
 	}
 	if (audioOption && mc != nullptr && mc->sndManager != nullptr)
 		mc->sndManager->onSoundOptionsChanged();
-	saveOptions();
+	//saveOptions(); Deferred to menu exit to avoid I/O lag
 }
 
 void GameSettings::setLegacyUiEnabled(bool enabled)
