@@ -251,8 +251,8 @@ void updateMenu(const Ps2PadSnapshot& primary, bool specializedMenuNavigation) {
         if (p.pressed & PAD_START) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_RETURN, true);
         if (p.released & PAD_START) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_RETURN, false);
     }
-    if (p.pressed & PAD_SELECT) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_TAB, true);
-    if (p.released & PAD_SELECT) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_TAB, false);
+    if (p.pressed & PAD_SELECT) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_T, true);
+    if (p.released & PAD_SELECT) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_T, false);
 }
 
 void updateGameplay(const Ps2PadSnapshot& p) {
@@ -306,8 +306,8 @@ void updateGameplay(const Ps2PadSnapshot& p) {
     if (p.pressed & PAD_L1) lwjgl::Mouse::detail::pushWheel(1, 0, 0);
     if (p.pressed & PAD_R3) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_F5, true);
     if (p.released & PAD_R3) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_F5, false);
-    if (p.pressed & PAD_SELECT) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_F3, true);
-    if (p.released & PAD_SELECT) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_F3, false);
+    if (p.pressed & PAD_SELECT) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_T, true);
+    if (p.released & PAD_SELECT) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_T, false);
 
     // Gameplay does not use text/menu latches. Clear them so they do not leak into menus.
     ps2PadClearLatchedPressed(0);
