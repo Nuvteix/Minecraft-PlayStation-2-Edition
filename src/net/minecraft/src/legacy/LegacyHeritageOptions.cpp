@@ -160,7 +160,6 @@ void LegacyHeritageOptions::saveIdentity()
 
 void LegacyHeritageOptions::saveAndClose()
 {
-    settings->saveOptions();
     returnToParent();
 }
 

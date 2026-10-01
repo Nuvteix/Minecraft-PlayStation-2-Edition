@@ -426,7 +426,7 @@ void GameSettings::setKeyBinding(int_t i, int_t j)
 	keyBindings[i]->keyCode = j;
 	KeyBinding::resetKeyBindingArrayAndHash();
 	syncKeyBindingsToPlatform();
-	saveOptions();
+	//saveOptions(); Deferred to menu exit to avoid I/O lag
 }
 
 void GameSettings::resetControlBindingsToDefaults()
@@ -454,7 +454,7 @@ void GameSettings::resetControlBindingsToDefaults()
 	KeyBinding::resetKeyBindingArrayAndHash();
 	syncKeyBindingsToPlatform();
 	syncControllerBindingsToPlatform();
-	saveOptions();
+	//saveOptions(); Deferred to menu exit to avoid I/O lag
 }
 
 void GameSettings::setOptionFloatValue(const EnumOptions *enumoptions, float f)
@@ -865,7 +865,7 @@ void GameSettings::setOptionValue(const EnumOptions *enumoptions, int_t i)
 	{
 		ofAnimatedTextures = !ofAnimatedTextures;
 	}
-	saveOptions();
+	//saveOptions(); Deferred to menu exit to avoid I/O lag
 }
 
 float GameSettings::getOptionFloatValue(const EnumOptions *enumoptions)

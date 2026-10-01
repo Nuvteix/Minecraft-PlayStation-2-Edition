@@ -89,7 +89,7 @@ void GuiVideoSettings::actionPerformed(GuiButton *button)
 	}
 	if (button->id == 200)
 	{
-		mc->gameSettings->saveOptions();
+		//mc->gameSettings->saveOptions();
 		mc->displayGuiScreen(parentScreen);
 		return;
 	}
