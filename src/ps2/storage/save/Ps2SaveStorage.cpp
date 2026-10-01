@@ -64,37 +64,10 @@ bool writeConfiguration(const std::string &path, const void *data, std::size_t l
     if (length > 1024 * 1024 || (length != 0 && data == nullptr) ||
         path.compare(0, configRoot().size() + 1, configRoot() + "/") != 0 ||
         !available(Target::MemoryCard)) return false;
+
     PlatformStorage::mkdirs(configRoot());
-    std::vector<unsigned char> previous;
-    const bool hadPrevious = readConfiguration(path, previous);
-    const auto *bytes = static_cast<const unsigned char *>(data);
-    const auto writeVerified = [&](const std::string &destination, const void *source, std::size_t size) {
-        if (!PlatformStorage::writeFile(destination, source, size)) return false;
-        std::vector<unsigned char> check;
-        return PlatformStorage::readFile(destination, check) && check.size() == size &&
-            (size == 0 || std::memcmp(check.data(), source, size) == 0);
-    };
-    // Resolve an interrupted replacement before reusing its journal files.
-    if (PlatformStorage::exists(path + ".pending"))
-    {
-        if (hadPrevious && !writeVerified(path, previous.data(), previous.size())) return false;
-        if (!PlatformStorage::removeFile(path + ".pending")) return false;
-    }
-    else if (!hadPrevious && PlatformStorage::exists(path))
-        return false; // An unreadable existing file must not be overwritten.
-    // Allocate and verify the new copy BEFORE touching either previous copy.
-    if (!writeVerified(path + ".pending", bytes, length))
-    {
-        PlatformStorage::removeFile(path + ".pending");
-        return false;
-    }
-    if (hadPrevious && !writeVerified(path + ".bak", previous.data(), previous.size()))
-    {
-        PlatformStorage::removeFile(path + ".pending");
-        return false;
-    }
-    if (!writeVerified(path, bytes, length)) return false;
-    return PlatformStorage::removeFile(path + ".pending");
+
+    return PlatformStorage::writeFile(path, data, length);
 }
 
 bool configurationSaveFailed() { return state().configurationSaveFailed; }
