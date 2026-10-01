@@ -96,37 +96,37 @@ void GuiVideoSettings::actionPerformed(GuiButton *button)
 	// --- OptiFine: open sub-screens (ids 100-103, matching nj.java) ---
 	if (button->id == 100)
 	{
-		mc->gameSettings->saveOptions();
+		//mc->gameSettings->saveOptions(); Deferred to menu exit to avoid I/O lag
 		mc->displayGuiScreen(new GuiAnimationSettingsOF(this, guiGameSettings));
 		return;
 	}
 	if (button->id == 101)
 	{
-		mc->gameSettings->saveOptions();
+		//mc->gameSettings->saveOptions(); Deferred to menu exit to avoid I/O lag
 		mc->displayGuiScreen(new GuiDetailSettingsOF(this, guiGameSettings));
 		return;
 	}
 	if (button->id == 102)
 	{
-		mc->gameSettings->saveOptions();
+		//mc->gameSettings->saveOptions(); Deferred to menu exit to avoid I/O lag
 		mc->displayGuiScreen(new GuiTexturePacks(this));
 		return;
 	}
 	if (button->id == 103)
 	{
-		mc->gameSettings->saveOptions();
+		//mc->gameSettings->saveOptions(); Deferred to menu exit to avoid I/O lag
 		mc->displayGuiScreen(new GuiOtherSettingsOF(this, guiGameSettings));
 		return;
 	}
 	if (button->id == 104)
 	{
-		mc->gameSettings->saveOptions();
+		//mc->gameSettings->saveOptions(); Deferred to menu exit to avoid I/O lag
 		mc->displayGuiScreen(new GuiPerformanceSettingsOF(this, guiGameSettings));
 		return;
 	}
 	if (button->id == 105)
 	{
-		mc->gameSettings->saveOptions();
+		//mc->gameSettings->saveOptions(); Deferred to menu exit to avoid I/O lag
 		mc->displayGuiScreen(new GuiQualitySettingsOF(this, guiGameSettings));
 		return;
 	}
