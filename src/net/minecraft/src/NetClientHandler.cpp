@@ -139,6 +139,8 @@
 #include "Packet201PlayerInfo.h"
 #include "Packet202PlayerAbilities.h"
 
+#include "mods/ModManager.h"
+
 // Networking uses the platform socket implementation selected by NetworkManager.
 
 NetClientHandler::NetClientHandler(Minecraft* minecraft, const std::string& host, int port)
@@ -844,6 +846,7 @@ void NetClientHandler::handleCollect(Packet22Collect* packet)
 
 void NetClientHandler::handleChat(Packet3Chat* packet)
 {
+    ModManager::getInstance().onChatMessageReceived(packet->message);
     mc->ingameGUI->addChatMessage(packet->message);
 }
 

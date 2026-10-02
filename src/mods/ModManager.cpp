@@ -10,6 +10,8 @@
 #include "reiminimap/ReiMinimapMod.h"
 #include "strongholdlocator/StrongholdLocatorMod.h"
 
+#include "autologin/AutoLoginMod.h"
+
 #include <cstdio>
 
 ModManager::ModManager()
@@ -145,22 +147,26 @@ void ModManager::scanAndLoadPacks()
         }
 
         std::unique_ptr<IMod> newMod;
-        if (pack.id == "toomanyitems")
-        {
-            newMod = std::make_unique<TooManyItemsMod>();
-        }
-        else if (pack.id == "reiminimap")
-        {
-            newMod = std::make_unique<ReiMinimapMod>();
-        }
-        else if (pack.id == "strongholdlocator")
-        {
-            newMod = std::make_unique<StrongholdLocatorMod>();
-        }
-        else
-        {
-            newMod = std::make_unique<DynamicMod>(pack);
-        }
+		if (pack.id == "toomanyitems")
+		{
+			newMod = std::make_unique<TooManyItemsMod>();
+		}
+		else if (pack.id == "reiminimap")
+		{
+			newMod = std::make_unique<ReiMinimapMod>();
+		}
+		else if (pack.id == "strongholdlocator")
+		{
+			newMod = std::make_unique<StrongholdLocatorMod>();
+		}
+		else if (pack.id == "autologin")
+		{
+			newMod = std::make_unique<AutoLoginMod>();
+		}
+		else
+		{
+			newMod = std::make_unique<DynamicMod>(pack);
+		}
 
         if (newMod)
         {
@@ -238,6 +244,8 @@ bool ModManager::installModPack(const std::string &sourcePath, std::string &outE
             newMod = std::make_unique<ReiMinimapMod>();
         else if (info.id == "strongholdlocator")
             newMod = std::make_unique<StrongholdLocatorMod>();
+		else if (info.id == "autologin")
+			newMod = std::make_unique<AutoLoginMod>();
         else
             newMod = std::make_unique<DynamicMod>(info);
 
@@ -411,4 +419,20 @@ bool ModManager::onContainerKeyTyped(char_t c, int_t key)
         }
     }
     return false;
+}
+
+void ModManager::openModSettings(Minecraft *mc, const std::string &modId)
+{
+    IMod *mod = getMod(modId);
+    if (mod != nullptr && mod->hasSettings())
+        mod->openSettings(mc);
+}
+
+void ModManager::onChatMessageReceived(const std::string &message)
+{
+    for (auto &mod : mods)
+    {
+        if (mod->isEnabled())
+            mod->onChatMessageReceived(message);
+    }
 }

@@ -38,7 +38,6 @@ public:
 
             if (currentMouseX >= toggleBtnLeft)
             {
-                // Clicked toggle button on right
                 bool newState = !mods[index]->isEnabled();
                 mods[index]->setEnabled(newState);
                 ModManager::getInstance().save();
@@ -48,7 +47,6 @@ public:
             }
             else
             {
-                // Selected mod row
                 parent->setSelectedModIndex(index);
 
                 if (parent->mc != nullptr && parent->mc->sndManager != nullptr)
@@ -90,17 +88,14 @@ public:
         if (fr == nullptr)
             return;
 
-        // Mod Title & Version
         std::string title = mod->getName() + " " + std::string("\xc2\xa7") + "7" + mod->getVersion();
         parent->drawString(fr, title, x + 4, y + 4, 0xFFFFFF);
 
-        // Mod Description & Author
         std::string desc = mod->getDescription();
         if (!mod->getAuthor().empty())
             desc += " " + std::string("\xc2\xa7") + "8(" + mod->getAuthor() + ")";
         parent->drawString(fr, desc, x + 4, y + 18, 0x888888);
 
-        // Toggle button on right side of slot
         int_t btnW = 76;
         int_t btnH = 18;
         int_t btnX = x + 216 - btnW;
@@ -140,18 +135,14 @@ GuiMods::~GuiMods()
 void GuiMods::setSelectedModIndex(int_t index)
 {
     selectedModIndex = index;
+    auto &mods = ModManager::getInstance().getMods();
+    const bool hasSelection = (selectedModIndex >= 0 && selectedModIndex < static_cast<int_t>(mods.size()));
+
     if (deleteButton != nullptr)
-    {
-        auto &mods = ModManager::getInstance().getMods();
-        if (selectedModIndex >= 0 && selectedModIndex < static_cast<int_t>(mods.size()))
-        {
-            deleteButton->enabled = mods[selectedModIndex]->isRemovable();
-        }
-        else
-        {
-            deleteButton->enabled = false;
-        }
-    }
+        deleteButton->enabled = hasSelection && mods[selectedModIndex]->isRemovable();
+
+    if (settingsButton != nullptr)
+        settingsButton->enabled = hasSelection && mods[selectedModIndex]->hasSettings();
 }
 
 void GuiMods::initGui()
@@ -165,12 +156,14 @@ void GuiMods::initGui()
 
     controlList.clear();
 
-    // Row 1 buttons
-    controlList.push_back(new GuiButton(101, width / 2 - 155, height - 48, 150, 20, uiText("Load Mods")));
-    deleteButton = new GuiButton(102, width / 2 + 5, height - 48, 150, 20, uiText("Delete Mod"));
+    controlList.push_back(new GuiButton(101, width / 2 - 155, height - 48, 100, 20, uiText("Load Mods")));
+    deleteButton = new GuiButton(102, width / 2 - 50, height - 48, 100, 20, uiText("Delete Mod"));
     controlList.push_back(deleteButton);
+    
+    settingsButton = new GuiButton(103, width / 2 + 55, height - 48, 100, 20, "Settings");
+    settingsButton->enabled = false;
+    controlList.push_back(settingsButton);
 
-    // Row 2 buttons
     controlList.push_back(new GuiButton(200, width / 2 - 100, height - 25, 200, 20, tr->translateKey("gui.done")));
 
     setSelectedModIndex(selectedModIndex);
@@ -199,6 +192,12 @@ void GuiMods::actionPerformed(GuiButton *button)
             std::string ver = mods[selectedModIndex]->getVersion();
             mc->displayGuiScreen(new GuiYesNo(this, uiText("Are you sure you want to delete this mod?"), name + " (" + ver + ")", uiText("Delete"), uiText("Cancel"), 1));
         }
+    }
+    else if (button->id == 103) // Settings
+    {
+        auto &mods = ModManager::getInstance().getMods();
+        if (selectedModIndex >= 0 && selectedModIndex < static_cast<int_t>(mods.size()))
+            ModManager::getInstance().openModSettings(mc, mods[selectedModIndex]->getId());
     }
     else if (slotList != nullptr)
     {
