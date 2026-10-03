@@ -2217,16 +2217,24 @@ void Minecraft::runTick()
             Ps2SplitScreen::postTick(this);
 #endif
         }
-        if (!isGamePaused || isMultiplayerWorld())
-        {
-            if (NetClientHandler *nch = getSendQueue())
-                nch->processPendingRespawnIfAny();
-			
-            theWorld->setAllowedMobSpawns(theWorld->difficultySetting > 0, true);
-            clientPhaseStartNs = System::nanoTime();
-            theWorld->tick();
-            ClientProfiler::tickPhase("worldTick", System::nanoTime() - clientPhaseStartNs);
-        }
+		World *tickedWorld = nullptr;
+
+		if (!isGamePaused || isMultiplayerWorld())
+		{
+			tickedWorld = theWorld;
+
+			tickedWorld->setAllowedMobSpawns(tickedWorld->difficultySetting > 0, true);
+
+			clientPhaseStartNs = System::nanoTime();
+			tickedWorld->tick();
+			ClientProfiler::tickPhase("worldTick", System::nanoTime() - clientPhaseStartNs);
+
+			if (theWorld != tickedWorld)
+			{
+				systemTime = System::currentTimeMillis();
+				return;
+			}
+		}
         if (!isGamePaused && theWorld != nullptr)
         {
             clientPhaseStartNs = System::nanoTime();
@@ -2541,7 +2549,7 @@ void Minecraft::changeWorld(World *world, const std::string &s, EntityPlayerSP *
     // forcing synchronous storage / threaded-I/O drains while the PS2 network stack
     // is being torn down can stall the IOP during disconnect. Keep dirty stats in
     // RAM and let the next normal sync point (or app shutdown) persist them.
-    const bool ps2MultiplayerExit = oldWorld != nullptr && oldWorld->multiplayerWorld && world == nullptr;
+    const bool ps2MultiplayerExit = oldWorld != nullptr && oldWorld->multiplayerWorld;
 #else
     constexpr bool ps2MultiplayerExit = false;
 #endif
@@ -2807,8 +2815,11 @@ void Minecraft::changeWorld(World *world, const std::string &s, EntityPlayerSP *
 
 // ─── respawn ─────────────────────────────────────────────────────────────────
 
-void Minecraft::respawn(bool flag, int_t i, bool copyPlayerState)
+void Minecraft::respawn(bool flag, int_t i, bool copyPlayerState, bool preload)
 {
+    if (theWorld == nullptr || playerController == nullptr)
+        return;
+
     if (!theWorld->multiplayerWorld && !theWorld->worldProvider->canRespawnHere())
         usePortal(0);
 
@@ -2889,7 +2900,8 @@ void Minecraft::respawn(bool flag, int_t i, bool copyPlayerState)
     thePlayerOne = thePlayer;
     if (isPlayerScreenActive(0))
         closePlayerScreen(0);
-    preloadWorld("Respawning");
+	if (preload)
+		preloadWorld("Respawning");
 
     if (dynamic_cast<GuiGameOver *>(currentScreen) != nullptr)
         displayGuiScreen(nullptr);
@@ -3128,9 +3140,17 @@ bool Minecraft::lineIsCommand(const std::string &s)
 
 NetClientHandler *Minecraft::getSendQueue()
 {
-    EntityClientPlayerMP *mp = (thePlayer->getEntityClassID() == EntityClientPlayerMP::CLASS_ID) ? static_cast<EntityClientPlayerMP*>(thePlayer) : nullptr;
+    if (thePlayer == nullptr)
+        return nullptr;
+
+    EntityClientPlayerMP *mp =
+        (thePlayer->getEntityClassID() == EntityClientPlayerMP::CLASS_ID)
+            ? static_cast<EntityClientPlayerMP *>(thePlayer)
+            : nullptr;
+
     if (mp != nullptr)
         return mp->sendQueue;
+
     return nullptr;
 }
 

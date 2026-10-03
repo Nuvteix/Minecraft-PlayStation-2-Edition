@@ -125,7 +125,12 @@ WorldClient::~WorldClient()
 
 void WorldClient::tick()
 {
-    if (sendQueue != nullptr && sendQueue->processPendingRespawnIfAny())
+    Minecraft *minecraft = Minecraft::getMinecraft();
+
+    // Védekezés: ha ez a world már nem az aktív world, ne tick-eljen.
+    // Ez akkor fontos, ha egy korábbi packet batch közben cserélődött world,
+    // és a hívó mégis ebbe a objektumba lépett be.
+    if (minecraft == nullptr || minecraft->theWorld != this || sendQueue == nullptr)
         return;
 	
 	setWorldTime(JavaArithmetic::longAdd(getWorldTime(), 1LL));
@@ -148,11 +153,20 @@ void WorldClient::tick()
 	// Keep the same bounded promotion/cache policy, but make received state ready
 	// before retrying its entities.
 #if PLATFORM_PS2 && PLATFORM_MP_DEFERRED_CHUNKS
-	sendQueue->processReadPackets();
-	std::vector<Entity *> spawnCandidates = entitySpawnQueue.valuesInIterationOrder();
-	selectClientEntityRetryBatch(spawnCandidates, entityRetryCursor, 24);
-	promoteDeferredChunks(&spawnCandidates);
-	trimClientChunkCache();
+    sendQueue->processReadPackets();
+
+    const bool abortRequested = sendQueue->consumeAbortWorldTickAfterPacketBatch();
+
+    // Ha a packet batch során dimension change történt, a theWorld már nem ez
+    // a WorldClient. Ha same-dimension respawn történt, az abort flag jelzi.
+    // Mindkét esetben tilos folytatni a régi world tick-jét.
+    if (minecraft == nullptr || minecraft->theWorld != this || abortRequested)
+        return;
+
+    std::vector<Entity *> spawnCandidates = entitySpawnQueue.valuesInIterationOrder();
+    selectClientEntityRetryBatch(spawnCandidates, entityRetryCursor, 24);
+    promoteDeferredChunks(&spawnCandidates);
+    trimClientChunkCache();
 #else
 	std::vector<Entity *> spawnCandidates = entitySpawnQueue.valuesInIterationOrder();
 	if (spawnCandidates.size() > 10)
@@ -204,10 +218,16 @@ void WorldClient::tick()
 
 
 #if !(PLATFORM_PS2 && PLATFORM_MP_DEFERRED_CHUNKS)
-	sendQueue->processReadPackets();
+    sendQueue->processReadPackets();
+
+    const bool abortRequested = sendQueue->consumeAbortWorldTickAfterPacketBatch();
+
+    if (minecraft == nullptr || minecraft->theWorld != this || abortRequested)
+        return;
+
 #if PLATFORM_MP_DEFERRED_CHUNKS
-	promoteDeferredChunks();
-	trimClientChunkCache();
+    promoteDeferredChunks();
+    trimClientChunkCache();
 #endif
 #endif
 	for (auto it = pendingBlockChanges.begin(); it != pendingBlockChanges.end();)

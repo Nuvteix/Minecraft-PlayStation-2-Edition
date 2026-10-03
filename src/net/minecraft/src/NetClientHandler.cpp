@@ -176,18 +176,23 @@ NetClientHandler::~NetClientHandler()
 
 void NetClientHandler::processReadPackets()
 {
-    if (!disconnected)
+    if (!disconnected && netManager != nullptr)
     {
         netManager->processReadPackets();
+
 #if PLATFORM_PS2 && PLATFORM_MP_DEFERRED_CHUNKS
-        // Packet51 bursts can move dozens of compressed columns into the deferred
-        // cache in one dispatch. Trim once for the whole batch instead of doing a
-        // full cache victim search after every individual map packet.
-        if (worldClient != nullptr)
+        // Csak akkor trimmeljünk, ha a handler worldClientje még mindig az
+        // aktív world. Dimension change után a régi world nem kaphat újabb
+        // deferred-chunk batch lezárást.
+        if (worldClient != nullptr && mc != nullptr && mc->theWorld == worldClient)
+        {
             worldClient->finishDeferredChunkPacketBatch();
+        }
 #endif
     }
-    netManager->wakeThreads();
+
+    if (netManager != nullptr)
+        netManager->wakeThreads();
 }
 
 void NetClientHandler::handleLogin(Packet1Login* packet)
@@ -765,10 +770,15 @@ void NetClientHandler::handleBlockChange(Packet53BlockChange* packet)
 
 void NetClientHandler::handleKickDisconnect(Packet255KickDisconnect* packet)
 {
-    netManager->networkShutdown("disconnect.kicked", {});
+    if (netManager != nullptr)
+        netManager->networkShutdown("disconnect.kicked", {});
+
     disconnected = true;
-    
+    abortWorldTickAfterPacketBatch = false;
+
     mc->changeWorld1(nullptr);
+    worldClient = nullptr;
+
     mc->displayGuiScreen(new GuiConnectFailed(
         "disconnect.disconnected",
         "disconnect.genericReason",
@@ -779,13 +789,19 @@ void NetClientHandler::handleKickDisconnect(Packet255KickDisconnect* packet)
 void NetClientHandler::handleErrorMessage(const std::string& message, const std::vector<std::string>& args)
 {
     if (disconnected)
-    {
         return;
-    }
-    
+
     disconnected = true;
+    abortWorldTickAfterPacketBatch = false;
+
     mc->changeWorld1(nullptr);
-    mc->displayGuiScreen(new GuiConnectFailed("disconnect.lost", message, args.empty() ? std::string() : args[0]));
+    worldClient = nullptr;
+
+    mc->displayGuiScreen(new GuiConnectFailed(
+        "disconnect.lost",
+        message,
+        args.empty() ? std::string() : args[0]
+    ));
 }
 
 void NetClientHandler::quitWithPacket(Packet* packet)
@@ -1153,19 +1169,62 @@ void NetClientHandler::handleRespawn(Packet9Respawn* packet)
 {
     if (packet == nullptr || mc == nullptr || mc->thePlayer == nullptr)
         return;
-    if (packet->respawnDimension != mc->thePlayer->dimension)
+
+    const bool dimensionChanged = packet->respawnDimension != mc->thePlayer->dimension;
+
+    if (dimensionChanged)
     {
-        respawnPending = true;
-        respawnDimension = packet->respawnDimension;
-        respawnDifficulty = packet->difficulty;
-        respawnCreative = packet->creativeMode;
-        respawnTerrainType = packet->terrainType;
-        return;
+        terrainDownloaded = false;
+
+        WorldType *terrainType =
+            packet->terrainType != nullptr ? packet->terrainType : WorldType::DEFAULT;
+
+        WorldSettings settings(
+            0L,
+            packet->creativeMode,
+            false,
+            false,
+            terrainType
+        );
+
+        WorldClient *newWorld = new WorldClient(
+            this,
+            settings,
+            packet->respawnDimension,
+            packet->difficulty
+        );
+
+        newWorld->multiplayerWorld = true;
+
+        // Fontos: a handler worldClientje még changeWorld1() előtt átálljon,
+        // hogy ugyanabban a packet batch-ben a respawn utáni csomagok már az
+        // új worldre érkezzenek.
+        worldClient = newWorld;
+
+        mc->changeWorld1(newWorld);
+
+        if (mc->thePlayer != nullptr)
+            mc->thePlayer->dimension = packet->respawnDimension;
+
+        mc->displayGuiScreen(new GuiDownloadTerrain(this));
     }
-    mc->respawn(true, packet->respawnDimension, false);
-    PlayerControllerMP *controller = dynamic_cast<PlayerControllerMP *>(mc->playerController);
-    if (controller != nullptr)
+
+    // Network-triggered respawn: ne fusson le szinkron preloadWorld().
+    mc->respawn(true, packet->respawnDimension, false, false);
+
+    // MP pathon a playerController mindig PlayerControllerMP. A dynamic_cast
+    // elkerülhető, ha a PS2 RTTI/unaligned issue gyanús.
+    if (mc->isMultiplayerWorld() && mc->playerController != nullptr)
+    {
+        PlayerControllerMP *controller =
+            static_cast<PlayerControllerMP *>(mc->playerController);
+
         controller->setCreative(packet->creativeMode == 1);
+    }
+
+    // A jelenlegi WorldClient::tick() folyamatban van. Ha ez respawn volt,
+    // a tick()-nek a processReadPackets() után azonnal meg kell szakadnia.
+    abortWorldTickAfterPacketBatch = true;
 }
 
 void NetClientHandler::handleExplosion(Packet60Explosion* packet)
@@ -1521,25 +1580,15 @@ bool NetClientHandler::isServerHandler()
 
 bool NetClientHandler::processPendingRespawnIfAny()
 {
-    if (!respawnPending)
-        return false;
+    // Deprecated: Packet9Respawn most azonnal kezeli a world swap-et, és a
+    // régi world törlését a Minecraft::worldsToDelete deferred queue végzi.
     respawnPending = false;
-    
-    if (mc == nullptr || mc->thePlayer == nullptr)
-        return false;
-    
-    terrainDownloaded = false;
-    WorldSettings settings(0L, respawnCreative, false, false, respawnTerrainType);
-    worldClient = new WorldClient(this, settings, respawnDimension, respawnDifficulty);
-    worldClient->multiplayerWorld = true;
-    mc->changeWorld1(worldClient);
-    mc->thePlayer->dimension = respawnDimension;
-    mc->displayGuiScreen(new GuiDownloadTerrain(this));
-    
-    mc->respawn(true, respawnDimension, false);
-    PlayerControllerMP *controller = dynamic_cast<PlayerControllerMP *>(mc->playerController);
-    if (controller != nullptr)
-        controller->setCreative(respawnCreative == 1);
-    
-    return true;
+    return false;
+}
+
+bool NetClientHandler::consumeAbortWorldTickAfterPacketBatch()
+{
+    const bool value = abortWorldTickAfterPacketBatch;
+    abortWorldTickAfterPacketBatch = false;
+    return value;
 }

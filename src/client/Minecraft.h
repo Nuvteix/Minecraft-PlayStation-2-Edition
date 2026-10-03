@@ -102,7 +102,7 @@ public:
     void changeWorld1(World *world);
     void changeWorld2(World *world, const std::string &s);
     void changeWorld(World *world, const std::string &s, EntityPlayerSP *entityplayer);
-    void respawn(bool flag, int_t i, bool copyPlayer = false);
+    void respawn(bool flag, int_t i, bool copyPlayer = false, bool preload = true);
 
     void installResource(const std::string &s, const std::string &file);
 

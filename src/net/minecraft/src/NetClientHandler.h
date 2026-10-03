@@ -105,7 +105,8 @@ public:
     ~NetClientHandler();
 
     void processReadPackets();
-    bool processPendingRespawnIfAny();
+	bool processPendingRespawnIfAny();
+	bool consumeAbortWorldTickAfterPacketBatch();
     
     // Packet handlers - nombres basados en los de Java, renombrando ofuscados
     void handleLogin(Packet1Login* packet);
@@ -258,10 +259,14 @@ private:
     unsigned long preChunkUnloadCount = 0;
     unsigned long mapChunkCount = 0;
 	
-    // Deferred respawn
-    bool respawnPending = false;
-    int_t respawnDimension = 0;
-    int_t respawnDifficulty = 0;
-    int_t respawnCreative = 0;
-    WorldType* respawnTerrainType = nullptr;
+	// Deferred respawn
+	bool respawnPending = false;
+	int_t respawnDimension = 0;
+	int_t respawnDifficulty = 0;
+	int_t respawnCreative = 0;
+	WorldType* respawnTerrainType = nullptr;
+
+	// Set when Packet9Respawn was processed during a network batch. The current
+	// WorldClient::tick() must stop immediately after processReadPackets().
+	bool abortWorldTickAfterPacketBatch = false;
 };
