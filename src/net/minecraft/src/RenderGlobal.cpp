@@ -419,6 +419,11 @@ void RenderGlobal::renderStars()
 
 void RenderGlobal::changeWorld(World *world)
 {
+    // Guard against null world during transition
+    if (world == nullptr || world == worldObj) {
+        return; 
+    }
+	
 	if (worldObj != nullptr)
 		worldObj->removeWorldAccess(this);
 
@@ -1044,8 +1049,10 @@ void RenderGlobal::enqueueRendererUpdate(WorldRenderer *worldrenderer)
 #if PLATFORM_PS2 || PLATFORM_WII
 void RenderGlobal::enqueueRendererUpdatePriority(WorldRenderer *worldrenderer)
 {
-	if (worldrenderer == nullptr)
+	// Guard against use-after-free during world transition
+	if (worldrenderer == nullptr || mc == nullptr || mc->theWorld == nullptr) {
 		return;
+	}
 
 	// Block edits are tiny, but a console queue can already contain many
 	// slow chunk-build jobs. Put edited sections first so breaking/placing a
@@ -1147,14 +1154,20 @@ bool RenderGlobal::isRendererUpdateActing(EntityLiving *entityliving) const
 
 int_t RenderGlobal::sortAndRender(EntityLiving *entityliving, int_t i, double d)
 {
-	for (int_t j = 0; j < 10; j++)
-	{
-		worldRenderersCheckIndex = (worldRenderersCheckIndex + 1) % (renderChunksWide * renderChunksTall * renderChunksDeep);
-		WorldRenderer *worldrenderer = worldRenderers[worldRenderersCheckIndex];
-
-		if (worldrenderer->needsUpdate)
-			enqueueRendererUpdate(worldrenderer);
-	}
+    // Early exit if state is inconsistent (world swap in progress)
+    if (this == nullptr || mc == nullptr || mc->theWorld == nullptr || entityliving == nullptr) {
+        return 0;
+    }
+    
+    for (int_t j = 0; j < 10; j++){
+        worldRenderersCheckIndex = (worldRenderersCheckIndex + 1) % (renderChunksWide * renderChunksTall * renderChunksDeep);
+        WorldRenderer *worldrenderer = worldRenderers[worldRenderersCheckIndex];
+        
+        // Null check before accessing needsUpdate
+        if (worldrenderer != nullptr && worldrenderer->needsUpdate) {
+            enqueueRendererUpdate(worldrenderer);
+        }
+    }
 
 	if (mc->gameSettings->renderDistance != renderDistance && !Config::isLoadChunksFar())
 		loadRenderers();
@@ -1692,13 +1705,20 @@ int_t RenderGlobal::renderSortedRenderers(int_t i, int_t j, int_t k, double d)
 #endif
 }
 
-void RenderGlobal::updateClouds()
-{
-	cloudOffsetX++;
+void RenderGlobal::updateClouds(){
+    // Guard against null world during transition
+    if (cloudOffsetX >= 0 && worldObj != nullptr) {
+        cloudOffsetX++;
+    }
 }
 
 void RenderGlobal::renderSky(float f)
 {
+    // Critical guard: don't touch provider if world is gone
+    if (worldObj == nullptr || worldObj->worldProvider == nullptr || mc == nullptr) {
+        return;
+    }
+	
 	if (worldObj->worldProvider->worldType == 1)
 	{
 		renderDisable(RenderCapability::Fog);
@@ -3163,10 +3183,12 @@ EntityFX *RenderGlobal::spawnParticleEffect(const jstring &name, double x, doubl
 	}
 	else if (name == "note")
 		effect = new EntityNoteFX(worldObj, x, y, z, velocityX, velocityY, velocityZ);
-	else if (name == "portal")
-	{
-		if (Config::isPortalParticles())
-			effect = new EntityPortalFX(worldObj, x, y, z, velocityX, velocityY, velocityZ);
+	else if (name == "portal") {
+		if (Config::isPortalParticles() && worldObj != nullptr) {
+			effect = new EntityPortalFX(worldObj, x, y, z, dx, dy, dz);
+		} else {
+			effect = nullptr; // Silently drop
+		}
 	}
 	else if (name == "enchantmenttable")
 		effect = new EntityEnchantmentTableParticleFX(worldObj, x, y, z, velocityX, velocityY, velocityZ);

@@ -94,6 +94,7 @@ class ItemStack;
 class Explosion;
 class ChunkCoordinates;
 class GuiPlayerInfo;
+class WorldType;
 
 #include "NetHandler.h"
 
@@ -104,6 +105,7 @@ public:
     ~NetClientHandler();
 
     void processReadPackets();
+    bool processPendingRespawnIfAny();
     
     // Packet handlers - nombres basados en los de Java, renombrando ofuscados
     void handleLogin(Packet1Login* packet);
@@ -255,4 +257,11 @@ private:
     unsigned long preChunkLoadCount = 0;
     unsigned long preChunkUnloadCount = 0;
     unsigned long mapChunkCount = 0;
+	
+    // Deferred respawn
+    bool respawnPending = false;
+    int_t respawnDimension = 0;
+    int_t respawnDifficulty = 0;
+    int_t respawnCreative = 0;
+    WorldType* respawnTerrainType = nullptr;
 };

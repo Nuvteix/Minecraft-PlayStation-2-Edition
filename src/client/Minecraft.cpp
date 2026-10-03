@@ -2219,6 +2219,9 @@ void Minecraft::runTick()
         }
         if (!isGamePaused || isMultiplayerWorld())
         {
+            if (NetClientHandler *nch = getSendQueue())
+                nch->processPendingRespawnIfAny();
+			
             theWorld->setAllowedMobSpawns(theWorld->difficultySetting > 0, true);
             clientPhaseStartNs = System::nanoTime();
             theWorld->tick();

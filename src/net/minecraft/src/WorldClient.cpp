@@ -125,6 +125,9 @@ WorldClient::~WorldClient()
 
 void WorldClient::tick()
 {
+    if (sendQueue != nullptr && sendQueue->processPendingRespawnIfAny())
+        return;
+	
 	setWorldTime(JavaArithmetic::longAdd(getWorldTime(), 1LL));
 #if PLATFORM_PS2
 	// This override does not run World::tick(). Advance the client-only weather

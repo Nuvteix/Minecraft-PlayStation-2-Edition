@@ -1153,19 +1153,15 @@ void NetClientHandler::handleRespawn(Packet9Respawn* packet)
 {
     if (packet == nullptr || mc == nullptr || mc->thePlayer == nullptr)
         return;
-
     if (packet->respawnDimension != mc->thePlayer->dimension)
     {
-        terrainDownloaded = false;
-
-        WorldSettings settings(0L, packet->creativeMode, false, false, packet->terrainType);
-        worldClient = new WorldClient(this, settings, packet->respawnDimension, packet->difficulty);
-        worldClient->multiplayerWorld = true;
-        mc->changeWorld1(worldClient);
-        mc->thePlayer->dimension = packet->respawnDimension;
-        mc->displayGuiScreen(new GuiDownloadTerrain(this));
+        respawnPending = true;
+        respawnDimension = packet->respawnDimension;
+        respawnDifficulty = packet->difficulty;
+        respawnCreative = packet->creativeMode;
+        respawnTerrainType = packet->terrainType;
+        return;
     }
-
     mc->respawn(true, packet->respawnDimension, false);
     PlayerControllerMP *controller = dynamic_cast<PlayerControllerMP *>(mc->playerController);
     if (controller != nullptr)
@@ -1521,4 +1517,29 @@ void NetClientHandler::handlePlayerAbilities(Packet202PlayerAbilities* packet)
 bool NetClientHandler::isServerHandler()
 {
     return false;
+}
+
+bool NetClientHandler::processPendingRespawnIfAny()
+{
+    if (!respawnPending)
+        return false;
+    respawnPending = false;
+    
+    if (mc == nullptr || mc->thePlayer == nullptr)
+        return false;
+    
+    terrainDownloaded = false;
+    WorldSettings settings(0L, respawnCreative, false, false, respawnTerrainType);
+    worldClient = new WorldClient(this, settings, respawnDimension, respawnDifficulty);
+    worldClient->multiplayerWorld = true;
+    mc->changeWorld1(worldClient);
+    mc->thePlayer->dimension = respawnDimension;
+    mc->displayGuiScreen(new GuiDownloadTerrain(this));
+    
+    mc->respawn(true, respawnDimension, false);
+    PlayerControllerMP *controller = dynamic_cast<PlayerControllerMP *>(mc->playerController);
+    if (controller != nullptr)
+        controller->setCreative(respawnCreative == 1);
+    
+    return true;
 }
