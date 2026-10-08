@@ -132,10 +132,4 @@ void MovementInputFromOptions::updatePlayerMoveState(EntityPlayer *entityplayer)
 #endif
     }
 #endif
-
-    if (sneak)
-    {
-        moveStrafe *= 0.29999999999999999;
-        moveForward *= 0.29999999999999999;
-    }
 }
