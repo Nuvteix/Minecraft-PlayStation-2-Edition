@@ -116,6 +116,8 @@ void GameSettings::loadOptions()
 #ifdef PS2_PLATFORM
 	optionsFile = Ps2SaveStorage::configRoot() + "/options.txt";
 	bool loadedLegacyCrafting = false;
+	bool loadedPs2PerformanceProfile = false;
+	bool migratedPs2PerformanceProfile = false;
 	std::vector<int_t> savedPadBindings(keyBindings.size(), -1);
 #endif
 	std::vector<unsigned char> optionBytes;
@@ -144,6 +146,10 @@ void GameSettings::loadOptions()
 				std::string value = s.substr(separator + 1);
 				if (!value.empty() && value.back() == '\r')
 					value.pop_back();
+#ifdef PS2_PLATFORM
+				if (key == "ps2PerformanceProfile")
+					loadedPs2PerformanceProfile = value == "1";
+#endif
 				if (key == "music")
 					musicVolume = parseFloat(value);
 				if (key == "sound")
@@ -342,7 +348,7 @@ void GameSettings::loadOptions()
 				if (key == "ofCustomColors")
 					ofCustomColors = value == "true";
 				if (key == "ofConnectedTextures")
-					ofConnectedTextures = Config::limit((int_t)parseIntJava(value), 1, 3);
+					ofConnectedTextures = Config::limit((int_t)parseIntJava(value), 0, 3);
 				if (key == "ofNaturalTextures")
 					ofNaturalTextures = value == "true";
 				if (key == "ofMipmapLevel")
@@ -397,6 +403,28 @@ void GameSettings::loadOptions()
 #endif
 	platformGameSettingsFinalizeLoad(*this);
 #ifdef PS2_PLATFORM
+	if (!optionBytes.empty() && !loadedPs2PerformanceProfile)
+	{
+		// Old PS2 options files predate the fast profile and commonly stored the
+		// former expensive defaults. Migrate once; the marker preserves any later
+		// player changes to these ordinary graphics options.
+		fancyGraphics = false;
+		ambientOcclusion = false;
+		particleSetting = 2;
+		ofLoadFar = false;
+		ofFarView = false;
+		ofWeather = false;
+		ofClouds = 3;
+		ofStars = false;
+		ofSmoothBiomes = false;
+		ofConnectedTextures = 0;
+		ofNaturalTextures = false;
+		migratedPs2PerformanceProfile = true;
+	}
+	else if (optionBytes.empty())
+	{
+		loadedPs2PerformanceProfile = true;
+	}
 	// Platform defaults fill missing bindings, but must not replace saved pad edits.
 	for (std::size_t i = 0; i < savedPadBindings.size(); ++i)
 		if (savedPadBindings[i] == 0 || savedPadBindings[i] >= lwjgl::Keyboard::KEY_MAX)
@@ -417,6 +445,13 @@ void GameSettings::loadOptions()
 	// offline name after options.txt has been read so the next handshake uses it.
 	if (mc != nullptr && mc->session != nullptr)
 		mc->session->username = playerName;
+#ifdef PS2_PLATFORM
+	if (migratedPs2PerformanceProfile)
+	{
+		saveOptions();
+		MC_LOG_INFO("settings", "[PS2] Migrated existing options to performance profile\n");
+	}
+#endif
 }
 
 float GameSettings::parseFloat(const std::string &s)
@@ -482,6 +517,9 @@ void GameSettings::saveOptions()
 	knownKeys.insert("options.aspectratio");
 #endif
 	knownKeys.insert("splitscreenVertical");
+#ifdef PS2_PLATFORM
+	knownKeys.insert("ps2PerformanceProfile");
+#endif
 	platformGameSettingsAddKnownKeys(knownKeys);
 	for (KeyBinding *binding : keyBindings)
 		knownKeys.insert("key_" + binding->keyDescription);
@@ -515,6 +553,7 @@ void GameSettings::saveOptions()
 
 #ifdef PS2_PLATFORM
 	Ps2OptionWriter printwriter;
+    printwriter << "ps2PerformanceProfile:1\n";
 #else
 	std::ostringstream printwriter;
 	printwriter.imbue(std::locale::classic());
