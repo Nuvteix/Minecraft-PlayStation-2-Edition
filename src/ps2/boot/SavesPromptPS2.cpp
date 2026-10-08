@@ -21,19 +21,42 @@ static void sp_bg_draw(const Ps2BootRenderer::Texture& background, float width, 
         return;
 
     Ps2BootRenderer::setTextureRepeat(false);
-    const LegacyPanoramaUv uv = legacyPanoramaUv(
+    LegacyPanoramaUv uv = legacyPanoramaUv(
         static_cast<int_t>(width), static_cast<int_t>(height),
         background.width, background.height, panoramaOffset);
+    if (static_cast<float>(background.width) / background.height < width / height)
+    {
+        uv.u0 = 0.25f * panoramaOffset;
+        uv.u1 = uv.u0 + 0.75f;
+        uv.v0 = 0.0f;
+        uv.v1 = 1.0f;
+    }
     Ps2BootRenderer::drawTexture(background,
                                  0.0f, 0.0f,
                                  uv.u0 * background.width, uv.v0 * background.height,
                                  width, height,
                                  uv.u1 * background.width, uv.v1 * background.height,
                                  z,
-                                 {0x96, 0xA0, 0xB4, 0x80});
+                                 {0x80, 0x80, 0x80, 0x80});
     Ps2BootRenderer::setAlphaBlend(true);
     Ps2BootRenderer::drawRect(0.0f, 0.0f, width, height, z, {0, 0, 0, 0x30});
     Ps2BootRenderer::setAlphaBlend(false);
+}
+
+static void sp_button_draw(const Ps2BootRenderer::Texture& texture,
+                           float x, float y, float width, float height,
+                           int z, bool selected)
+{
+    if (!Ps2BootRenderer::textureValid(texture))
+        return;
+
+    const float halfWidth = width * 0.5f;
+    const float v0 = static_cast<float>(46 + (selected ? 2 : 1) * 20);
+    const Ps2BootRenderer::Color white = {255, 255, 255, 0x80};
+    Ps2BootRenderer::drawTexture(texture, x, y, 0.0f, v0,
+        x + halfWidth, y + height, 100.0f, v0 + 20.0f, z, white);
+    Ps2BootRenderer::drawTexture(texture, x + halfWidth, y, 100.0f, v0,
+        x + width, y + height, 200.0f, v0 + 20.0f, z, white);
 }
 
 static void sp_str(const Ps2BootRenderer::Font& font,
@@ -109,20 +132,13 @@ SaveLocation ps2_show_saves_prompt() {
             Ps2BootRenderer::TextureFilter::Linear, Ps2BootRenderer::TextureAlphaMode::SourceAlpha))
         Ps2BootRenderer::loadTextureAsset("assets/gui/background.png", bg,
             Ps2BootRenderer::TextureFilter::Nearest, Ps2BootRenderer::TextureAlphaMode::SourceAlpha);
+    Ps2BootRenderer::Texture buttonTexture;
+    Ps2BootRenderer::loadTextureAsset("assets/gui/gui.png", buttonTexture,
+        Ps2BootRenderer::TextureFilter::Nearest, Ps2BootRenderer::TextureAlphaMode::SourceAlpha);
 
-    const Ps2BootRenderer::Color C_BORD    = {46, 50, 60, 0x80};
-    const Ps2BootRenderer::Color C_SEL     = {255, 196, 40, 0x80};
     const Ps2BootRenderer::Color C_WHITE   = {240, 242, 246, 0x80};
     const Ps2BootRenderer::Color C_LGRAY   = {146, 152, 166, 0x80};
-    const Ps2BootRenderer::Color C_MC_ACC  = {46, 204, 113, 0x80};
-    const Ps2BootRenderer::Color C_MC_FILL = {26, 46, 36, 0x80};
-    const Ps2BootRenderer::Color C_MC_SEL  = {30, 92, 58, 0x80};
-    const Ps2BootRenderer::Color C_US_ACC  = {66, 158, 235, 0x80};
-    const Ps2BootRenderer::Color C_US_FILL = {22, 38, 52, 0x80};
-    const Ps2BootRenderer::Color C_US_SEL  = {26, 76, 110, 0x80};
-    const Ps2BootRenderer::Color C_NO_ACC  = {200, 90, 90, 0x80};
-    const Ps2BootRenderer::Color C_NO_FILL = {44, 28, 28, 0x80};
-    const Ps2BootRenderer::Color C_NO_SEL  = {96, 42, 42, 0x80};
+    const Ps2BootRenderer::Color C_HOVER  = {255, 255, 160, 0x80};
 
     const float titleScale = 2.0f;
     const float subScale = 1.3f;
@@ -132,9 +148,9 @@ SaveLocation ps2_show_saves_prompt() {
     const float cx = W * 0.5f;
 
     const int   BTN_COUNT = has_mass ? 3 : 2;
-    const float buttonW = W < 360.0f ? W - 48.0f : 300.0f;
-    const float buttonH = 40.0f;
-    const float buttonGap = 10.0f;
+    const float buttonW = W < 240.0f ? W - 24.0f : 220.0f;
+    const float buttonH = 26.0f;
+    const float buttonGap = 6.0f;
     const float buttonX = (W - buttonW) * 0.5f;
     const float buttonY = H * 0.40f;
 
@@ -165,26 +181,17 @@ SaveLocation ps2_show_saves_prompt() {
                           Z, "USB DRIVE NOT DETECTED", hintScale, C_LGRAY);
         }
 
-        const char* labels[3] = {"MEMORY CARD", has_mass ? "USB DRIVE" : "DON'T SAVE", "DON'T SAVE"};
-        const Ps2BootRenderer::Color accents[3] = {C_MC_ACC, has_mass ? C_US_ACC : C_NO_ACC, C_NO_ACC};
-        const Ps2BootRenderer::Color fills[3] = {C_MC_FILL, has_mass ? C_US_FILL : C_NO_FILL, C_NO_FILL};
-        const Ps2BootRenderer::Color selectedFills[3] = {C_MC_SEL, has_mass ? C_US_SEL : C_NO_SEL, C_NO_SEL};
+        const char* labels[3] = {"MEMORY CARD", "USB DRIVE", "DON'T SAVE"};
         for (int option = 0; option < BTN_COUNT; ++option)
         {
             const float y = buttonY + option * (buttonH + buttonGap);
             const bool selected = sel == option;
-            Ps2BootRenderer::drawRect(buttonX - 2.0f, y - 2.0f,
-                buttonX + buttonW + 2.0f, y + buttonH + 2.0f, Z,
-                selected ? C_SEL : C_BORD);
-            Ps2BootRenderer::drawRect(buttonX, y, buttonX + buttonW, y + buttonH, Z,
-                selected ? selectedFills[option] : fills[option]);
-            Ps2BootRenderer::drawRect(buttonX, y, buttonX + 4.0f, y + buttonH, Z,
-                accents[option]);
+            sp_button_draw(buttonTexture, buttonX, y, buttonW, buttonH, Z, selected);
             if (has_font)
             {
                 const float fitScale = sp_fit_scale(font, labels[option], labelScale, buttonW - 24.0f);
                 const float textY = y + (buttonH - CS * fitScale) * 0.5f;
-                sp_str_cx(font, cx, textY, Z, labels[option], fitScale, C_WHITE);
+                sp_str_cx(font, cx, textY, Z, labels[option], fitScale, selected ? C_HOVER : C_WHITE);
             }
         }
 
@@ -199,6 +206,7 @@ SaveLocation ps2_show_saves_prompt() {
 
     Ps2BootRenderer::destroyFont(font);
     Ps2BootRenderer::destroyTexture(bg);
+    Ps2BootRenderer::destroyTexture(buttonTexture);
     Ps2BootRenderer::restoreVram(vram_base);
     Ps2BootRenderer::resetAlpha();
 

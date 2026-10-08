@@ -223,10 +223,10 @@ bool fontValid(const Font& font)
     return font.cell > 0 && textureValid(font.texture);
 }
 
-static float glyphInkWidth(const Font& font, unsigned char code)
+static float glyphAdvance(const Font& font, unsigned char code)
 {
     if (code == ' ')
-        return static_cast<float>(font.cell) * 0.5f;
+        return 4.0f;
 
     const BootTextureImplementation* impl = implementation(font.texture);
     if (!impl || !impl->cpuPixels)
@@ -247,7 +247,7 @@ static float glyphInkWidth(const Font& font, unsigned char code)
             }
         }
     }
-    return inkWidth > 0 ? static_cast<float>(inkWidth) : static_cast<float>(font.cell) * 0.5f;
+    return inkWidth > 0 ? static_cast<float>(inkWidth + 1) : 4.0f;
 }
 
 float textWidth(const Font& font, const char* text, float scale)
@@ -256,14 +256,8 @@ float textWidth(const Font& font, const char* text, float scale)
         return 0.0f;
 
     float width = 0.0f;
-    bool first = true;
     while (*text)
-    {
-        if (!first)
-            width += 1.0f;
-        width += glyphInkWidth(font, static_cast<unsigned char>(*text++));
-        first = false;
-    }
+        width += glyphAdvance(font, static_cast<unsigned char>(*text++));
     return width * scale;
 }
 
@@ -313,19 +307,20 @@ void drawText(const Font& font,
     while (*text)
     {
         const int code = static_cast<unsigned char>(*text++);
-        const float glyphWidth = glyphInkWidth(font, static_cast<unsigned char>(code));
+        const float advance = glyphAdvance(font, static_cast<unsigned char>(code));
         if (code > 0x20 && code <= 0x7E)
         {
             const float u0 = static_cast<float>((code % 16) * font.cell);
             const float v0 = static_cast<float>((code / 16) * font.cell);
             drawTexture(font.texture,
                         x, y, u0, v0,
-                        x + glyphWidth * scale, y + static_cast<float>(font.cell) * scale,
-                        u0 + glyphWidth, v0 + font.cell,
+                        x + static_cast<float>(font.cell) * scale,
+                        y + static_cast<float>(font.cell) * scale,
+                        u0 + font.cell, v0 + font.cell,
                         z,
                         color);
         }
-        x += (glyphWidth + 1.0f) * scale;
+        x += advance * scale;
     }
 }
 
