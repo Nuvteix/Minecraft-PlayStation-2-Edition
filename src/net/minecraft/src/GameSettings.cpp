@@ -124,7 +124,7 @@ void GameSettings::setDefaults()
 	keyBindDrop = new KeyBinding("key.drop", 16);
 	keyBindChat = new KeyBinding("key.chat", 20);
 	keyBindPlayerList = new KeyBinding("key.playerlist", 15);
-	keyBindDebug = new KeyBinding("key.debug", lwjgl::Keyboard::KEY_F3);
+	keyBindDebug = new KeyBinding("Debug Info", lwjgl::Keyboard::KEY_F3);
 	keyBindPickBlock = new KeyBinding("key.pickItem", -98);
 	keyBindToggleFog = new KeyBinding("key.fog", 33);
 	keyBindSneak = new KeyBinding("key.sneak", 42);
