@@ -265,7 +265,7 @@ void EntityPlayerSP::onLivingUpdate()
 		}
 	}
 
-	if (!sprintToggleMode && movementInput != nullptr && onGround && !wasMovingForward && movementInput->moveForward >= sprintThreshold &&
+	if (movementInput != nullptr && onGround && !wasMovingForward && movementInput->moveForward >= sprintThreshold &&
 		!isSprinting() && hasFoodForSprinting && !isUsingItem() && !isPotionActive(Potion::blindness))
 	{
 		if (sprintToggleTimer == 0)
