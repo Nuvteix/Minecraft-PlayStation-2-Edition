@@ -14,4 +14,5 @@ inline int_t legacyHintRowY(int_t screenHeight, bool splitScreen = false)
     return splitScreen ? (screenHeight - 12) : (screenHeight - 15);
 }
 
-void drawLegacyMenuHints(Minecraft *mc, int_t screenWidth, int_t screenHeight, bool showBack);
+void drawLegacyMenuHints(Minecraft *mc, int_t screenWidth, int_t screenHeight, bool showBack,
+    const char *extraButton = nullptr, const char *extraAction = nullptr);

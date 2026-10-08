@@ -194,6 +194,11 @@ void LegacyOptionsScreen::returnToParent()
     mc->displayGuiScreen(parentScreen);
 }
 
+void LegacyOptionsScreen::drawFooterHints()
+{
+    drawLegacyMenuHints(mc, width, height, true);
+}
+
 void LegacyOptionsScreen::drawLegacyBackground(float_t partialTick)
 {
     bool drewPanorama = false;
@@ -225,5 +230,5 @@ void LegacyOptionsScreen::drawLegacyBackground(float_t partialTick)
         panelRenderer.draw(legacyLayout);
 
     syncLegacySelection();
-    drawLegacyMenuHints(mc, width, height, true);
+    drawFooterHints();
 }

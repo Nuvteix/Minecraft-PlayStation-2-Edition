@@ -44,6 +44,8 @@ void platformGameSettingsInitialize(GameSettings& settings)
 	settings.keyBindRight->keyCode = PS2_KEY_DPAD_RIGHT;
 	settings.keyBindJump->keyCode = PS2_KEY_CROSS;
 	settings.keyBindSneak->keyCode = PS2_KEY_L3;
+	settings.keyBindPlayerList->keyCode = 0;
+	settings.keyBindDebug->keyCode = 0;
 	platformGameSettingsApplyLegacyCrafting(settings);
 }
 
@@ -55,6 +57,8 @@ void platformGameSettingsResetControlBindings(GameSettings& settings)
 	settings.keyBindRight->keyCode = PS2_KEY_DPAD_RIGHT;
 	settings.keyBindJump->keyCode = PS2_KEY_CROSS;
 	settings.keyBindSneak->keyCode = PS2_KEY_L3;
+	settings.keyBindPlayerList->keyCode = 0;
+	settings.keyBindDebug->keyCode = 0;
 	platformGameSettingsApplyLegacyCrafting(settings);
 }
 
@@ -85,6 +89,10 @@ void platformGameSettingsFinalizeLoad(GameSettings& settings)
 	migrateKey(settings.keyBindRight, PS2_KEY_DPAD_RIGHT);
 	migrateKey(settings.keyBindJump, PS2_KEY_CROSS);
 	migrateKey(settings.keyBindSneak, PS2_KEY_L3);
+	if (settings.keyBindPlayerList->keyCode == lwjgl::Keyboard::KEY_TAB)
+		settings.keyBindPlayerList->keyCode = 0;
+	if (settings.keyBindDebug->keyCode == lwjgl::Keyboard::KEY_F3)
+		settings.keyBindDebug->keyCode = 0;
 	platformGameSettingsApplyLegacyCrafting(settings);
 }
 

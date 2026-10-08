@@ -21,6 +21,7 @@ protected:
     void actionPerformed(GuiButton *button) override;
     void keyTyped(char_t c, int_t key) override;
     void mouseClicked(int_t x, int_t y, int_t button) override;
+    void drawFooterHints() override;
 
 private:
     struct ActionSlot

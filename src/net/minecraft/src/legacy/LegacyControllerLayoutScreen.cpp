@@ -660,6 +660,19 @@ void LegacyControllerLayoutScreen::drawScreen(int_t mouseX, int_t mouseY, float_
     GuiScreen::drawScreen(mouseX, mouseY, partialTick);
 }
 
+void LegacyControllerLayoutScreen::drawFooterHints()
+{
+#if PLATFORM_PS2
+    if (captureBindingIndex < 0 && selectedControlIndex >= 0 &&
+        selectedControlIndex < static_cast<int_t>(actionSlots.size()))
+    {
+        drawLegacyMenuHints(mc, width, height, true, "Triangle", "Unbind");
+        return;
+    }
+#endif
+    drawLegacyMenuHints(mc, width, height, true);
+}
+
 void LegacyControllerLayoutScreen::onGuiClosed()
 {
     platformSetPadRebindExclusive(false);
