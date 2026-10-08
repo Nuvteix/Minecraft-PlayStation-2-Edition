@@ -13,6 +13,8 @@ namespace
 {
 bool s_initialized = false;
 bool s_ready = false;
+bool s_loggedFirstCharacter = false;
+bool s_loggedReadError = false;
 
 void pushCharacter(unsigned char character)
 {
@@ -87,8 +89,24 @@ void poll()
     for (int count = 0; count < 32; ++count)
     {
         char character = 0;
-        if (PS2KbdRead(&character) <= 0)
+        const int result = PS2KbdRead(&character);
+        if (result < 0)
+        {
+            if (!s_loggedReadError)
+            {
+                MC_LOG_WARN("input", "[PS2] USB keyboard read failed: %d\n", result);
+                s_loggedReadError = true;
+            }
             break;
+        }
+        if (result == 0)
+            break;
+        if (!s_loggedFirstCharacter)
+        {
+            MC_LOG_INFO("input", "[PS2] USB keyboard received byte 0x%02X\n",
+                        static_cast<unsigned char>(character));
+            s_loggedFirstCharacter = true;
+        }
         pushCharacter(static_cast<unsigned char>(character));
     }
 }

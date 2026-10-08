@@ -72,7 +72,8 @@ static void sp_str_cx(const Ps2BootRenderer::Font& font,
                       float centerX, float y, int z,
                       const char* text, float scale, Ps2BootRenderer::Color color)
 {
-    const float x = centerX - Ps2BootRenderer::textWidth(font, text, scale) * 0.5f;
+    const float x = static_cast<float>(static_cast<int>(
+        centerX - Ps2BootRenderer::textWidth(font, text, scale) * 0.5f));
     sp_str(font, x, y, z, text, scale, color);
 }
 
@@ -105,7 +106,10 @@ static float sp_fit_scale(const Ps2BootRenderer::Font& font, const char* text,
     if (unitWidth <= 0.0f)
         return desiredScale;
     const float fitScale = maxWidth / unitWidth;
-    return fitScale < desiredScale ? fitScale : desiredScale;
+    if (fitScale >= desiredScale)
+        return desiredScale;
+    const int integerScale = static_cast<int>(fitScale);
+    return integerScale >= 1 ? static_cast<float>(integerScale) : fitScale;
 }
 
 } // namespace
@@ -134,23 +138,23 @@ SaveLocation ps2_show_saves_prompt() {
     Ps2BootRenderer::loadTextureAsset("assets/gui/gui.png", buttonTexture,
         Ps2BootRenderer::TextureFilter::Nearest, Ps2BootRenderer::TextureAlphaMode::SourceAlpha);
 
-    const Ps2BootRenderer::Color C_WHITE   = {240, 242, 246, 0x80};
+    const Ps2BootRenderer::Color C_WHITE   = {224, 224, 224, 0x80};
     const Ps2BootRenderer::Color C_LGRAY   = {146, 152, 166, 0x80};
     const Ps2BootRenderer::Color C_HOVER  = {255, 255, 160, 0x80};
 
-    const float titleScale = 1.8f;
-    const float subScale = 1.2f;
-    const float labelScale = 1.5f;
-    const float hintScale = 1.4f;
+    const float titleScale = 2.0f;
+    const float subScale = 1.0f;
+    const float labelScale = 1.0f;
+    const float hintScale = 2.0f;
     const float CS = has_font ? (float)font.cell : 8.0f;
     const float cx = W * 0.5f;
 
     const int   BTN_COUNT = has_mass ? 3 : 2;
     const float buttonW = W < 224.0f ? W - 24.0f : 200.0f;
-    const float buttonH = 20.0f;
+    const float buttonH = 24.0f;
     const float buttonGap = 6.0f;
     const float buttonX = (W - buttonW) * 0.5f;
-    const float buttonY = H * 0.40f;
+    const float buttonY = static_cast<float>(static_cast<int>(H * 0.40f));
 
     const int SEL_MC   = 0;
     const int SEL_MASS = 1;
@@ -161,8 +165,8 @@ SaveLocation ps2_show_saves_prompt() {
 
     while (!done) {
         u16 just = sp_pad_just();
-        if ((just & (PAD_LEFT  | PAD_L1)) && sel > 0)               sel--;
-        if ((just & (PAD_RIGHT | PAD_R1)) && sel < BTN_COUNT - 1)   sel++;
+        if ((just & PAD_UP) && sel > 0)                             sel--;
+        if ((just & PAD_DOWN) && sel < BTN_COUNT - 1)               sel++;
         if (just & PAD_CROSS)                                        done = 1;
         if (just & (PAD_CIRCLE | PAD_TRIANGLE | PAD_START)) { sel = SEL_NONE; done = 1; }
 
@@ -171,11 +175,12 @@ SaveLocation ps2_show_saves_prompt() {
         ++frame;
 
         if (has_font) {
-            sp_str_cx(font, cx, H * 0.20f, Z, "Save Location", titleScale, C_WHITE);
-            sp_str_cx(font, cx, H * 0.20f + CS * titleScale + 8.0f, Z,
+            const float titleY = static_cast<float>(static_cast<int>(H * 0.20f));
+            sp_str_cx(font, cx, titleY, Z, "Save Location", titleScale, C_WHITE);
+            sp_str_cx(font, cx, titleY + CS * titleScale + 8.0f, Z,
                       "Choose where to save your worlds", subScale, C_LGRAY);
             if (!has_mass)
-                sp_str_cx(font, cx, H * 0.20f + CS * titleScale + CS * subScale + 16.0f,
+                sp_str_cx(font, cx, titleY + CS * titleScale + CS * subScale + 16.0f,
                           Z, "USB DRIVE NOT DETECTED", hintScale, C_LGRAY);
         }
 
@@ -188,16 +193,18 @@ SaveLocation ps2_show_saves_prompt() {
             if (has_font)
             {
                 const float fitScale = sp_fit_scale(font, labels[option], labelScale, buttonW - 24.0f);
-                const float textY = y + (buttonH - CS * fitScale) * 0.5f;
+                const float textY = static_cast<float>(static_cast<int>(
+                    y + (buttonH - CS * fitScale) * 0.5f));
                 sp_str_cx(font, cx, textY, Z, labels[option], fitScale, selected ? C_HOVER : C_WHITE);
             }
         }
 
         if (has_font)
         {
-            const char* hint = "Left/Right: Choose   X: Select   Start: Skip";
+            const char* hint = "Up/Down: Choose   X: Select   Start: Skip";
             const float fittedHintScale = sp_fit_scale(font, hint, hintScale, W - 24.0f);
-            sp_str_cx(font, cx, H - CS * fittedHintScale - 18.0f, Z, hint, fittedHintScale, C_WHITE);
+            const float hintY = static_cast<float>(static_cast<int>(H - CS * fittedHintScale - 18.0f));
+            sp_str_cx(font, cx, hintY, Z, hint, fittedHintScale, C_WHITE);
         }
         Ps2BootRenderer::present();
     }
