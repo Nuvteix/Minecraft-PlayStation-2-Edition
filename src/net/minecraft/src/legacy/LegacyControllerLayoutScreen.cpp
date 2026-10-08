@@ -607,8 +607,8 @@ void LegacyControllerLayoutScreen::updateScreen()
     syncSelectedControl();
 
 #if PLATFORM_PS2
-    const Ps2PadSnapshot &pad = ps2PadGetSnapshot(platformMenuPad());
-    if ((pad.pressed & PS2_PAD_TRIANGLE) != 0 && selectedControlIndex >= 0 &&
+    const Ps2PadSnapshot &padSnapshot = ps2PadGetSnapshot(platformMenuPad());
+    if ((padSnapshot.pressed & PS2_PAD_TRIANGLE) != 0 && selectedControlIndex >= 0 &&
         selectedControlIndex < static_cast<int_t>(actionSlots.size()))
     {
         unbindSelectedAction();
