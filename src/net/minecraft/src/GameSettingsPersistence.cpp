@@ -148,7 +148,7 @@ void GameSettings::loadOptions()
 					value.pop_back();
 #ifdef PS2_PLATFORM
 				if (key == "ps2PerformanceProfile")
-					loadedPs2PerformanceProfile = value == "1";
+					loadedPs2PerformanceProfile = value == "2";
 #endif
 				if (key == "music")
 					musicVolume = parseFloat(value);
@@ -413,6 +413,8 @@ void GameSettings::loadOptions()
 		particleSetting = 2;
 		ofLoadFar = false;
 		ofFarView = false;
+		ofFogOff = false;
+		ofFogFancy = false;
 		ofWeather = false;
 		ofClouds = 3;
 		ofStars = false;
@@ -553,7 +555,7 @@ void GameSettings::saveOptions()
 
 #ifdef PS2_PLATFORM
 	Ps2OptionWriter printwriter;
-    printwriter << "ps2PerformanceProfile:1\n";
+	printwriter << "ps2PerformanceProfile:2\n";
 #else
 	std::ostringstream printwriter;
 	printwriter.imbue(std::locale::classic());

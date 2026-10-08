@@ -49,7 +49,9 @@ const PlatformGameDefaults& platformGameDefaults()
 #else
         d.viewBobbing = false;
 #endif
-        d.fogOff = PLATFORM_PS2 != 0;
+        // Keep distance fog enabled on PS2 so the deliberately short visible
+        // chunk window fades into the sky instead of ending in a hard edge.
+        d.fogOff = false;
         d.brightness = (PLATFORM_PS2 || PLATFORM_WII) ? 1.0f : 0.0f;
         d.aoLevel = 0.0f;
 #if PLATFORM_PC_LEGACY
