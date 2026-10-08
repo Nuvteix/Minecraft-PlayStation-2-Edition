@@ -35,11 +35,11 @@
 // 347 ms slowTick=randomDisplay spike on 2026-09-16. The first PS2 pass used
 // 250 probes, but ocean profiling later showed this phase still consuming about
 // 1.5-1.6 ms per rendered frame once a 20 FPS stretch made nearly every frame
-// carry a game tick. 128 probes preserve ambient torch/lava/portal particles
-// while giving the 30 FPS recovery path roughly another 0.7 ms of tick headroom.
+// carry a game tick. 64 keeps occasional torch/lava/portal ambience while
+// reducing this measured phase by about 0.7 ms compared with 128 probes.
 #define PS2_CACHE_RANDOM_DISPLAY_CHUNKS 1
 #define PS2_REUSE_RANDOM_DISPLAY_RNG 1
-#define PS2_RANDOM_DISPLAY_PROBES 128
+#define PS2_RANDOM_DISPLAY_PROBES 64
 
 // Resident chunks visited per world tick by updateBlocksAndPlayCaveSounds.
 //

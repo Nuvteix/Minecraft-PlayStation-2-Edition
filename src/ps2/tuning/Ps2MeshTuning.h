@@ -116,7 +116,7 @@
 // This is intentionally separate from PS2_VU1_CLIPPED_PARTIALS: enabling the
 // latter would make the clipped entry authoritative for near-plane geometry,
 // which it does not currently clip correctly.
-#define PS2_VU1_SIDE_CLIPPED_PARTIALS 0
+#define PS2_VU1_SIDE_CLIPPED_PARTIALS 1
 
 // Classify cluster AABBs against the frustum and guard band on COP2 (VU0 macro
 // mode) instead of the scalar FPU. See Ps2Vu0Math.h for the transposed plane
