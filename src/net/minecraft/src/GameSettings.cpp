@@ -92,7 +92,7 @@ GameSettings::~GameSettings()
 	keyBindAttack = keyBindUseItem = nullptr;
 	keyBindForward = keyBindLeft = keyBindBack = keyBindRight = nullptr;
 	keyBindJump = keyBindInventory = keyBindCrafting = keyBindDrop = keyBindChat = nullptr;
-	keyBindPlayerList = keyBindPickBlock = nullptr;
+	keyBindPlayerList = keyBindDebug = keyBindPickBlock = nullptr;
 	keyBindToggleFog = keyBindSneak = ofKeyBindZoom = nullptr;
 }
 
@@ -124,6 +124,7 @@ void GameSettings::setDefaults()
 	keyBindDrop = new KeyBinding("key.drop", 16);
 	keyBindChat = new KeyBinding("key.chat", 20);
 	keyBindPlayerList = new KeyBinding("key.playerlist", 15);
+	keyBindDebug = new KeyBinding("key.debug", lwjgl::Keyboard::KEY_F3);
 	keyBindPickBlock = new KeyBinding("key.pickItem", -98);
 	keyBindToggleFog = new KeyBinding("key.fog", 33);
 	keyBindSneak = new KeyBinding("key.sneak", 42);
@@ -131,7 +132,7 @@ void GameSettings::setDefaults()
 	platformGameSettingsInitialize(*this);
 	keyBindings = {
 		keyBindAttack, keyBindUseItem, keyBindForward, keyBindLeft, keyBindBack, keyBindRight,
-		keyBindJump, keyBindSneak, keyBindDrop, keyBindInventory, keyBindCrafting, keyBindChat, keyBindPlayerList,
+		keyBindJump, keyBindSneak, keyBindDrop, keyBindInventory, keyBindCrafting, keyBindChat, keyBindPlayerList, keyBindDebug,
 		keyBindPickBlock, keyBindToggleFog
 	};
 	mc = nullptr;
@@ -444,6 +445,7 @@ void GameSettings::resetControlBindingsToDefaults()
 	keyBindDrop->keyCode = 16;
 	keyBindChat->keyCode = 20;
 	keyBindPlayerList->keyCode = 15;
+	keyBindDebug->keyCode = lwjgl::Keyboard::KEY_F3;
 	keyBindPickBlock->keyCode = -98;
 	keyBindToggleFog->keyCode = 33;
 	keyBindSneak->keyCode = 42;

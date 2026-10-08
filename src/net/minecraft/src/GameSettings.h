@@ -94,6 +94,7 @@ public:
 	KeyBinding *keyBindDrop;
 	KeyBinding *keyBindChat;
 	KeyBinding *keyBindPlayerList;
+	KeyBinding *keyBindDebug;
 	KeyBinding *keyBindPickBlock;
 	KeyBinding *keyBindToggleFog;
 	KeyBinding *keyBindSneak;

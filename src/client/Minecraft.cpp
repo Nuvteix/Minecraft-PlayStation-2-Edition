@@ -2039,7 +2039,7 @@ void Minecraft::runTick()
             }
             if (eventKey == lwjgl::Keyboard::KEY_F1)
                 gameSettings->hideGUI = !gameSettings->hideGUI;
-            if (eventKey == lwjgl::Keyboard::KEY_F3)
+            if (eventKey == gameSettings->keyBindDebug->keyCode)
             {
                 if (gameSettings->legacyUI)
                     displayGuiScreen(new LegacyDebugOptions(nullptr, gameSettings));
@@ -2121,7 +2121,9 @@ void Minecraft::runTick()
                 thePlayer->dropCurrentItem();
         }
 
-        while (isMultiplayerWorld() && gameSettings->keyBindChat->isPressed())
+        while (isMultiplayerWorld() &&
+             gameSettings->keyBindChat->keyCode != gameSettings->keyBindDebug->keyCode &&
+             gameSettings->keyBindChat->isPressed())
             displayGuiScreen(new GuiChat());
 
         if (isMultiplayerWorld() && currentScreen == nullptr &&
