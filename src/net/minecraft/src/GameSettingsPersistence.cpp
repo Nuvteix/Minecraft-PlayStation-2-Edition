@@ -403,6 +403,12 @@ void GameSettings::loadOptions()
 #endif
 	platformGameSettingsSanitizeLoadedBindings(*this);
 	PlatformUserSettings::setControllerDeadzone(controllerDeadzone);
+	// loadOptions writes keyCode on the binding objects the Controls screen
+	// reads, but gameplay routes pad events through KeyBinding's hash. That
+	// hash is built in setDefaults() from platform defaults and was never
+	// rebuilt here, so a reboot showed the saved layout while jump/sneak/chat
+	// still used the boot defaults until the user touched Controls.
+	KeyBinding::resetKeyBindingArrayAndHash();
 	syncKeyBindingsToPlatform();
 	syncControllerBindingsToPlatform();
 
