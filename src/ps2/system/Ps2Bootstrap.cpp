@@ -5,6 +5,7 @@
 
 #include "ps2/boot/Ps2BootScreen.h"
 #include "ps2/input/Ps2Input.h"
+#include "ps2/input/Ps2UsbKeyboard.h"
 #include "ps2/render/Ps2Graphics.h"
 #include "ps2/storage/Ps2Storage.h"
 #include "ps2/storage/assets/Ps2Assets.h"
@@ -87,6 +88,7 @@ bool initialize(int argc, char** argv)
     MC_LOG_INFO("platform", "[PS2] assets: %s (%s)\n", Ps2Assets::dataDir(), Ps2Assets::sourceName());
     MC_LOG_DEBUG("ps2.boot", "[PS2] assets resolved\n");
 
+    Ps2UsbKeyboard::initialize();
     Ps2SaveSetup::selectStorage();
     return true;
 }

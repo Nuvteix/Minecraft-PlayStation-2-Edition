@@ -4,12 +4,14 @@
 #include "ps2/input/Ps2PadRuntime.h"
 #include "ps2/input/Ps2InputMapper.h"
 #include "ps2/input/Ps2Pointer.h"
+#include "ps2/input/Ps2UsbKeyboard.h"
 
 namespace Ps2Input {
 void initialize() { Ps2PadRuntime::initialize(); }
 bool waitUntilReady() { return Ps2PadRuntime::waitUntilReady(); }
 void poll(bool inMenu, bool specializedMenuNavigation)
 {
+    Ps2UsbKeyboard::poll();
     Ps2PadRuntime::poll();
     Ps2InputMapper::update(inMenu, specializedMenuNavigation);
 }

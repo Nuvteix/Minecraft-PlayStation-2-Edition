@@ -26,10 +26,10 @@ static void sp_bg_draw(const Ps2BootRenderer::Texture& background, float width, 
         background.width, background.height, panoramaOffset);
     if (static_cast<float>(background.width) / background.height < width / height)
     {
-        uv.u0 = 0.25f * panoramaOffset;
-        uv.u1 = uv.u0 + 0.75f;
-        uv.v0 = 0.0f;
-        uv.v1 = 1.0f;
+        const float visibleV = static_cast<float>(background.width) * height /
+            (static_cast<float>(background.height) * width);
+        uv.v0 = (1.0f - visibleV) * panoramaOffset;
+        uv.v1 = uv.v0 + visibleV;
     }
     Ps2BootRenderer::drawTexture(background,
                                  0.0f, 0.0f,
@@ -51,11 +51,12 @@ static void sp_button_draw(const Ps2BootRenderer::Texture& texture,
         return;
 
     const float halfWidth = width * 0.5f;
+    const float rightSourceX = 200.0f - halfWidth;
     const float v0 = static_cast<float>(46 + (selected ? 2 : 1) * 20);
     const Ps2BootRenderer::Color white = {255, 255, 255, 0x80};
     Ps2BootRenderer::drawTexture(texture, x, y, 0.0f, v0,
-        x + halfWidth, y + height, 100.0f, v0 + 20.0f, z, white);
-    Ps2BootRenderer::drawTexture(texture, x + halfWidth, y, 100.0f, v0,
+        x + halfWidth, y + height, halfWidth, v0 + 20.0f, z, white);
+    Ps2BootRenderer::drawTexture(texture, x + halfWidth, y, rightSourceX, v0,
         x + width, y + height, 200.0f, v0 + 20.0f, z, white);
 }
 
@@ -63,6 +64,7 @@ static void sp_str(const Ps2BootRenderer::Font& font,
                    float x, float y, int z,
                    const char* text, float scale, Ps2BootRenderer::Color color)
 {
+    Ps2BootRenderer::drawText(font, x + 1.0f, y + 1.0f, z, text, scale, {0, 0, 0, 0x80});
     Ps2BootRenderer::drawText(font, x, y, z, text, scale, color);
 }
 
@@ -70,7 +72,8 @@ static void sp_str_cx(const Ps2BootRenderer::Font& font,
                       float centerX, float y, int z,
                       const char* text, float scale, Ps2BootRenderer::Color color)
 {
-    Ps2BootRenderer::drawTextCentered(font, centerX, y, z, text, scale, color);
+    const float x = centerX - Ps2BootRenderer::textWidth(font, text, scale) * 0.5f;
+    sp_str(font, x, y, z, text, scale, color);
 }
 
 // ---------------------------------------------------------------------------
@@ -92,9 +95,6 @@ static u16 sp_pad_just() {
     return just;
 }
 
-// Right-aligned text: drawText/drawTextCentered cover left and center, but
-// nothing right-aligns, and the language indicator needs to hug the panel's
-// right edge regardless of which language's string is longer.
 // Shrink long labels to the available width using the font's measured width.
 static float sp_fit_scale(const Ps2BootRenderer::Font& font, const char* text,
                           float desiredScale, float maxWidth)
@@ -126,9 +126,7 @@ SaveLocation ps2_show_saves_prompt() {
     u32 vram_base = Ps2BootRenderer::checkpointVram();
     Ps2BootRenderer::Font font; bool has_font = Ps2BootRenderer::loadFontAsset("assets/font/default.png", font);
     Ps2BootRenderer::Texture bg;
-    if (!Ps2BootRenderer::loadTextureAsset("assets/legacy/panorama.png", bg,
-            Ps2BootRenderer::TextureFilter::Linear, Ps2BootRenderer::TextureAlphaMode::SourceAlpha) &&
-        !Ps2BootRenderer::loadTextureAsset("assets/title/bg/panorama0.png", bg,
+    if (!Ps2BootRenderer::loadTextureAsset("assets/title/bg/panorama0.png", bg,
             Ps2BootRenderer::TextureFilter::Linear, Ps2BootRenderer::TextureAlphaMode::SourceAlpha))
         Ps2BootRenderer::loadTextureAsset("assets/gui/background.png", bg,
             Ps2BootRenderer::TextureFilter::Nearest, Ps2BootRenderer::TextureAlphaMode::SourceAlpha);
@@ -148,8 +146,8 @@ SaveLocation ps2_show_saves_prompt() {
     const float cx = W * 0.5f;
 
     const int   BTN_COUNT = has_mass ? 3 : 2;
-    const float buttonW = W < 240.0f ? W - 24.0f : 220.0f;
-    const float buttonH = 26.0f;
+    const float buttonW = W < 224.0f ? W - 24.0f : 200.0f;
+    const float buttonH = 20.0f;
     const float buttonGap = 6.0f;
     const float buttonX = (W - buttonW) * 0.5f;
     const float buttonY = H * 0.40f;
@@ -168,7 +166,7 @@ SaveLocation ps2_show_saves_prompt() {
         if (just & PAD_CROSS)                                        done = 1;
         if (just & (PAD_CIRCLE | PAD_TRIANGLE | PAD_START)) { sel = SEL_NONE; done = 1; }
 
-        const float panoramaOffset = legacyPanoramaLoopOffset(static_cast<float_t>(frame));
+        const float panoramaOffset = legacyPanoramaLoopOffset(static_cast<float_t>(frame) / 3.0f);
         sp_bg_draw(bg, W, H, Z, panoramaOffset);
         ++frame;
 

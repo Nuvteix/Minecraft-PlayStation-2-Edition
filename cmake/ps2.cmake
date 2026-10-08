@@ -377,7 +377,7 @@ target_link_directories(OptiCraft PRIVATE
 
 target_link_libraries(OptiCraft
     gskit dmakit dma graph
-    patches pad mc vux
+    patches pad mc vux kbd
     $<$<BOOL:${PS2_ENABLE_SOUND}>:audsrv>
     z
     $<$<AND:$<BOOL:${PS2_ENABLE_NETWORK}>,$<BOOL:${PS2_REMOTE_DEBUG}>>:ps2ips>
@@ -556,3 +556,20 @@ if(PS2_ENABLE_NETWORK)
     endforeach()
     unset(_PS2_NET_IRX_LIST)
 endif()
+
+foreach(_PS2_USB_IRX usbd ps2kbd)
+    set(_PS2_USB_IRX_SOURCE "${PS2SDK}/iop/irx/${_PS2_USB_IRX}.irx")
+    if(EXISTS "${_PS2_USB_IRX_SOURCE}")
+        add_custom_command(TARGET OptiCraft POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${PS2_APP_DIR}/data/irx"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${_PS2_USB_IRX_SOURCE}" "${PS2_APP_DIR}/data/irx/${_PS2_USB_IRX}.irx"
+            COMMENT "Packaging ${PS2_APP_DIR}/data/irx/${_PS2_USB_IRX}.irx"
+            VERBATIM
+        )
+    else()
+        message(WARNING "PS2 USB keyboard support: ${_PS2_USB_IRX_SOURCE} not found")
+    endif()
+endforeach()
+unset(_PS2_USB_IRX)
+unset(_PS2_USB_IRX_SOURCE)
