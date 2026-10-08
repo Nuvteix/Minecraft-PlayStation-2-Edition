@@ -621,7 +621,7 @@ void LegacyControllerLayoutScreen::updateScreen()
 
     const PlatformTextInputSnapshot pad = platformTextInputSnapshot(platformMenuPad());
 #if PLATFORM_PS2
-    if ((pad.pressed & (PLATFORM_TEXT_CLOSE | PLATFORM_TEXT_SHIFT)) != 0)
+    if ((pad.pressed & PLATFORM_TEXT_CLOSE) != 0)
     {
         if (mc != nullptr && mc->sndManager != nullptr)
             mc->sndManager->playSoundFX("random.back", 1.0f, 1.0f);
