@@ -13,6 +13,7 @@
 #include "net/minecraft/src/Minecraft.h"
 #include "net/minecraft/src/SoundManager.h"
 #include "net/minecraft/src/UiStrings.h"
+#include "LegacyMenuHints.h"
 #include "pc/lwjgl/Keyboard.h"
 #include "platform/Input.h"
 #include "platform/PlatformConfig.h"
