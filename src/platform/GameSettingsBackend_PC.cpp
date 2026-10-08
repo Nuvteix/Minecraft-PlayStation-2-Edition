@@ -108,6 +108,7 @@ void platformGameSettingsFinalizeLoad(GameSettings& settings)
 	pcRenderBackendSetRequested(backend);
 	platformGameSettingsApplyLegacyCrafting(settings);
 }
+void platformGameSettingsSanitizeLoadedBindings(GameSettings&) {}
 void platformGameSettingsSyncControllerBindings(const GameSettings&) {}
 void platformGameSettingsAddKnownKeys(std::unordered_set<std::string>& knownKeys)
 {

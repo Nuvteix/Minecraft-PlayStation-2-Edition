@@ -113,6 +113,8 @@ void platformGameSettingsFinalizeLoad(GameSettings& settings)
 	PlatformUserSettings::setDisplayDeflicker(settings.wiiDeflicker);
 }
 
+void platformGameSettingsSanitizeLoadedBindings(GameSettings&) {}
+
 void platformGameSettingsSyncControllerBindings(const GameSettings& settings)
 {
 	WiiButtonBindings::Snapshot snapshot;

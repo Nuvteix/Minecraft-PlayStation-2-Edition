@@ -13,8 +13,12 @@ namespace
 {
 void migrateKey(KeyBinding* binding, int_t fallback)
 {
-	if (binding->keyCode < lwjgl::Keyboard::KEY_MAX)
-		binding->keyCode = fallback;
+	// 0 is unbound. Mouse buttons are negative. Neither is a leftover PC key.
+	// Treating 0 as "needs a pad fallback" was binding WASD onto the D-pad on
+	// first launch, before options.txt existed to restore the empty slots.
+	if (binding->keyCode <= 0 || binding->keyCode >= lwjgl::Keyboard::KEY_MAX)
+		return;
+	binding->keyCode = fallback;
 }
 }
 
@@ -97,10 +101,10 @@ void platformGameSettingsFinalizeLoad(GameSettings& settings)
 		settings.limitFramerate = 30;
 	else if (settings.limitFramerate != 30 && settings.limitFramerate != 60)
 		settings.limitFramerate = 60;
-	migrateKey(settings.keyBindForward, PS2_KEY_DPAD_UP);
-	migrateKey(settings.keyBindLeft, PS2_KEY_DPAD_LEFT);
-	migrateKey(settings.keyBindBack, PS2_KEY_DPAD_DOWN);
-	migrateKey(settings.keyBindRight, PS2_KEY_DPAD_RIGHT);
+	migrateKey(settings.keyBindForward, 0);
+	migrateKey(settings.keyBindLeft, 0);
+	migrateKey(settings.keyBindBack, 0);
+	migrateKey(settings.keyBindRight, 0);
 	migrateKey(settings.keyBindJump, PS2_KEY_CROSS);
 	migrateKey(settings.keyBindSneak, PS2_KEY_L3);
 	if (settings.keyBindPlayerList->keyCode == lwjgl::Keyboard::KEY_TAB)
@@ -116,6 +120,23 @@ void platformGameSettingsFinalizeLoad(GameSettings& settings)
 	if (settings.keyBindTogglePerspective->keyCode != 0)
 		migrateKey(settings.keyBindTogglePerspective, PS2_KEY_R3);
 	platformGameSettingsApplyLegacyCrafting(settings);
+}
+
+void platformGameSettingsSanitizeLoadedBindings(GameSettings& settings)
+{
+	// An older first-boot path copied WASD onto the D-pad. Movement is analog,
+	// and the layout screen does not expose those four slots, so this quartet
+	// cannot be a user choice. Clear it so D-pad stays free for Chat/Debug/etc.
+	if (settings.keyBindForward->keyCode == PS2_KEY_DPAD_UP &&
+		settings.keyBindLeft->keyCode == PS2_KEY_DPAD_LEFT &&
+		settings.keyBindBack->keyCode == PS2_KEY_DPAD_DOWN &&
+		settings.keyBindRight->keyCode == PS2_KEY_DPAD_RIGHT)
+	{
+		settings.keyBindForward->keyCode = 0;
+		settings.keyBindLeft->keyCode = 0;
+		settings.keyBindBack->keyCode = 0;
+		settings.keyBindRight->keyCode = 0;
+	}
 }
 
 void platformGameSettingsSyncControllerBindings(const GameSettings&) {}

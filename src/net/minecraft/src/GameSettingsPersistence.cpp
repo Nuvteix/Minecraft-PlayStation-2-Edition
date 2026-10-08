@@ -401,6 +401,7 @@ void GameSettings::loadOptions()
 		if (savedPadBindings[i] == 0 || savedPadBindings[i] >= lwjgl::Keyboard::KEY_MAX)
 			keyBindings[i]->keyCode = savedPadBindings[i];
 #endif
+	platformGameSettingsSanitizeLoadedBindings(*this);
 	PlatformUserSettings::setControllerDeadzone(controllerDeadzone);
 	syncKeyBindingsToPlatform();
 	syncControllerBindingsToPlatform();
