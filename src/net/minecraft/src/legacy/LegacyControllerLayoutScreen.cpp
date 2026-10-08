@@ -12,9 +12,6 @@
 #include "net/minecraft/src/KeyBinding.h"
 #include "net/minecraft/src/Minecraft.h"
 #include "net/minecraft/src/SoundManager.h"
-#include "net/minecraft/src/RenderEngine.h"
-#include "net/minecraft/src/Tessellator.h"
-#include "platform/RenderAPI.h"
 #include "net/minecraft/src/UiStrings.h"
 #include "pc/lwjgl/Keyboard.h"
 #include "platform/Input.h"
@@ -27,21 +24,10 @@
 
 namespace
 {
-// 3:2 artwork, fitted into the existing central lane without stretching.
-constexpr int_t CONTROLLER_WIDTH = 96;
-constexpr int_t CONTROLLER_HEIGHT = 64;
-constexpr const char *CONTROLLER_TEXTURE = "/gui/controls/ps2/controller.png";
-
 constexpr int_t BUTTON_ACTION_BASE = 7300;
 constexpr int_t BUTTON_RESET = 7400;
-constexpr int_t BUTTON_BACK = 7401;
-
-struct ControllerAnchor
-{
-    int_t x = 0;
-    int_t y = 0;
-    bool valid = false;
-};
+constexpr int_t BUTTON_UNBIND = 7401;
+constexpr int_t BUTTON_BACK = 7402;
 
 bool pointInside(int_t x, int_t y, int_t left, int_t top, int_t width, int_t height)
 {
@@ -84,36 +70,6 @@ bool bindableControllerKey(int_t key)
     return false;
 }
 
-ControllerAnchor anchorForKey(int_t keyCode, int_t centerX, int_t topY)
-{
-#if PLATFORM_PS2
-    switch (keyCode)
-    {
-    case PS2_KEY_L2:         return {centerX - 26, topY + 5, true};
-    case PS2_KEY_L1:         return {centerX - 26, topY + 13, true};
-    case PS2_KEY_R1:         return {centerX + 26, topY + 13, true};
-    case PS2_KEY_R2:         return {centerX + 26, topY + 5, true};
-    case PS2_KEY_DPAD_UP:    return {centerX - 27, topY + 24, true};
-    case PS2_KEY_DPAD_LEFT:  return {centerX - 31, topY + 28, true};
-    case PS2_KEY_DPAD_RIGHT: return {centerX - 22, topY + 28, true};
-    case PS2_KEY_DPAD_DOWN:  return {centerX - 27, topY + 33, true};
-    case PS2_KEY_TRIANGLE:   return {centerX + 26, topY + 22, true};
-    case PS2_KEY_SQUARE:     return {centerX + 19, topY + 28, true};
-    case PS2_KEY_CIRCLE:     return {centerX + 33, topY + 28, true};
-    case PS2_KEY_CROSS:      return {centerX + 26, topY + 35, true};
-    case PS2_KEY_L3:         return {centerX - 14, topY + 41, true};
-    case PS2_KEY_R3:         return {centerX + 12, topY + 41, true};
-    default:
-        break;
-    }
-#else
-    (void)keyCode;
-    (void)centerX;
-    (void)topY;
-#endif
-    return {};
-}
-
 void drawPanelTitle(FontRenderer *font, const std::string &text, int_t centerX, int_t y)
 {
     if (font == nullptr)
@@ -128,41 +84,13 @@ void drawPanelTitle(FontRenderer *font, const std::string &text, int_t centerX, 
 LegacyControllerLayoutScreen::LegacyControllerLayoutScreen(GuiScreen *parent, GameSettings *settings,
     LegacyOptionsBackgroundMode backgroundMode)
     : LegacyOptionsScreen(parent, settings, backgroundMode),
-      resetButton(nullptr), backButton(nullptr), captureBindingIndex(-1)
+      resetButton(nullptr), unbindButton(nullptr), backButton(nullptr),
+      captureBindingIndex(-1), lastSelectedBindingIndex(-1)
 {
-}
-
-void LegacyControllerLayoutScreen::drawControllerImage(int_t centerX, int_t topY)
-{
-    // Resource availability is checked when opening the screen, not every frame.
-    // Missing artwork must not prevent editing or produce a missing-texture quad.
-    if (!controllerImageAvailable || mc == nullptr || mc->renderEngine == nullptr)
-        return;
-    const int_t texture = mc->renderEngine->getTexture(CONTROLLER_TEXTURE);
-    int_t textureWidth = 0, textureHeight = 0;
-    if (texture < 0 || !mc->renderEngine->getTextureDimensions(texture, &textureWidth, &textureHeight)
-        || textureWidth <= 0 || textureHeight <= 0)
-        return;
-    mc->renderEngine->bindTexture(texture);
-    renderEnable(RenderCapability::Texture2D);
-    renderEnable(RenderCapability::Blend);
-    renderBlendFunc(RenderBlendFactor::SrcAlpha, RenderBlendFactor::OneMinusSrcAlpha);
-    renderColor4f(1, 1, 1, 1);
-    const int_t left = centerX - CONTROLLER_WIDTH / 2;
-    Tessellator &t = Tessellator::instance;
-    t.startDrawingQuads();
-    t.addVertexWithUV(left, topY + CONTROLLER_HEIGHT, 0, 0, 1);
-    t.addVertexWithUV(left + CONTROLLER_WIDTH, topY + CONTROLLER_HEIGHT, 0, 1, 1);
-    t.addVertexWithUV(left + CONTROLLER_WIDTH, topY, 0, 1, 0);
-    t.addVertexWithUV(left, topY, 0, 0, 0);
-    t.draw();
-    renderDisable(RenderCapability::Blend);
 }
 
 void LegacyControllerLayoutScreen::initGui()
 {
-    controllerImageAvailable = mc != nullptr && mc->renderEngine != nullptr
-        && mc->renderEngine->hasResource(CONTROLLER_TEXTURE);
     clearControlList();
     actionSlots.clear();
     captureBindingIndex = -1;
@@ -171,9 +99,7 @@ void LegacyControllerLayoutScreen::initGui()
         legacyOptionsMaxRows(width, height, LegacyOptionsLayoutPreset::Wide)));
     configureLegacyLayout(layoutRows, true, LegacyOptionsLayoutPreset::Wide);
 
-    // The layout editor needs extra horizontal room for two action columns and
-    // the controller reference between them. Widen only this screen while
-    // preserving the vertical panel budget and the footer/hint spacing.
+    // Widen this screen for two readable columns while preserving the footer.
     const int_t originalPanelWidth = legacyLayout.panelWidth;
     const int_t widenedPanelWidth = std::min<int_t>(std::max<int_t>(1, width - 12), originalPanelWidth + 48);
     legacyLayout.panelWidth = std::max<int_t>(originalPanelWidth, widenedPanelWidth);
@@ -186,13 +112,12 @@ void LegacyControllerLayoutScreen::initGui()
     const int_t contentX = legacyLayout.contentX;
     const int_t contentW = legacyLayout.contentWidth;
 
-    // Narrower action buttons leave a clean central lane for the controller and
-    // its connector lines instead of crowding the silhouette.
-    const int_t buttonW = std::max<int_t>(48, std::min<int_t>(56, (contentW - 118) / 2));
-    const int_t buttonH = 12;
+    const int_t columnGap = 8;
+    const int_t buttonW = std::max<int_t>(48, (contentW - columnGap) / 2);
+    const int_t buttonH = 10;
     const int_t rowGap = 1;
-    const int_t leftX = contentX + 4;
-    const int_t rightX = contentX + contentW - buttonW - 4;
+    const int_t leftX = contentX;
+    const int_t rightX = contentX + contentW - buttonW;
     const int_t buttonTop = panelTop + 36;
 
     std::vector<int_t> bindings;
@@ -240,24 +165,26 @@ void LegacyControllerLayoutScreen::initGui()
 
         ActionSlot slot;
         slot.bindingIndex = bindings[i];
-        slot.leftSide = leftSide;
-        slot.row = row;
         slot.button = button;
         actionSlots.push_back(slot);
     }
 
     const int_t footerY = panelBottom - legacyLayout.rowHeight - 4;
     const int_t gap = 2;
-    const int_t halfWidth = (contentW - gap) / 2;
-    resetButton = new LegacyGuiButton(BUTTON_RESET, contentX, footerY, halfWidth,
-        legacyLayout.rowHeight, uiText("Reset to Defaults"));
-    backButton = new LegacyGuiButton(BUTTON_BACK, contentX + halfWidth + gap, footerY,
-        contentW - halfWidth - gap, legacyLayout.rowHeight, uiText("Back"));
+    const int_t footerButtonWidth = (contentW - gap * 2) / 3;
+    resetButton = new LegacyGuiButton(BUTTON_RESET, contentX, footerY, footerButtonWidth,
+        legacyLayout.rowHeight, uiText("Reset"));
+    unbindButton = new LegacyGuiButton(BUTTON_UNBIND, contentX + footerButtonWidth + gap,
+        footerY, footerButtonWidth, legacyLayout.rowHeight, uiText("Unbind"));
+    backButton = new LegacyGuiButton(BUTTON_BACK, contentX + (footerButtonWidth + gap) * 2,
+        footerY, contentW - (footerButtonWidth + gap) * 2, legacyLayout.rowHeight, uiText("Back"));
     controlList.push_back(resetButton);
+    controlList.push_back(unbindButton);
     controlList.push_back(backButton);
 
     hoveredControlIndex = -1;
     selectedControlIndex = 0;
+    lastSelectedBindingIndex = actionSlots.empty() ? -1 : actionSlots.front().bindingIndex;
     refreshLabels();
     syncSelectedControl();
 }
@@ -301,6 +228,9 @@ bool LegacyControllerLayoutScreen::actionHasConflict(int_t bindingIndex) const
         return false;
 
     const int_t keyCode = settings->keyBindings[bindingIndex]->keyCode;
+    if (keyCode == 0)
+        return false;
+
     for (int_t i = 0; i < static_cast<int_t>(settings->keyBindings.size()); ++i)
     {
         if (i != bindingIndex && settings->keyBindings[i] != nullptr && settings->keyBindings[i]->keyCode == keyCode)
@@ -317,7 +247,18 @@ void LegacyControllerLayoutScreen::refreshLabels()
             slot.bindingIndex >= static_cast<int_t>(settings->keyBindings.size()))
             continue;
 
-        std::string label = settings->getKeyBindingDescription(slot.bindingIndex);
+        const int_t keyCode = visualPadKeyForSlot(slot);
+        std::string buttonName = keyCode == 0
+            ? uiText("Unbound")
+            : settings->getKeyDisplayString(keyCode);
+#if PLATFORM_PS2
+        if (settings->keyBindings[slot.bindingIndex] == settings->keyBindChat &&
+            keyCode == lwjgl::Keyboard::KEY_T)
+            buttonName = "Select";
+        else if (const char *padName = ps2PadKeyName(keyCode))
+            buttonName = padName;
+#endif
+        std::string label = settings->getKeyBindingDescription(slot.bindingIndex) + ": " + buttonName;
         if (actionHasConflict(slot.bindingIndex))
             label = std::string("\xc2\xa7" "c") + label;
         if (fontRenderer != nullptr)
@@ -333,8 +274,10 @@ int_t LegacyControllerLayoutScreen::selectionForButton(const GuiButton *button) 
             return i;
     if (button == resetButton)
         return static_cast<int_t>(actionSlots.size());
-    if (button == backButton)
+    if (button == unbindButton)
         return static_cast<int_t>(actionSlots.size()) + 1;
+    if (button == backButton)
+        return static_cast<int_t>(actionSlots.size()) + 2;
     return -1;
 }
 
@@ -345,6 +288,8 @@ GuiButton *LegacyControllerLayoutScreen::buttonForSelection(int_t index) const
     if (index == static_cast<int_t>(actionSlots.size()))
         return resetButton;
     if (index == static_cast<int_t>(actionSlots.size()) + 1)
+        return unbindButton;
+    if (index == static_cast<int_t>(actionSlots.size()) + 2)
         return backButton;
     return nullptr;
 }
@@ -373,7 +318,7 @@ void LegacyControllerLayoutScreen::syncSelectedControl()
 
     if (!isSelectionAvailable(selectedControlIndex))
     {
-        for (int_t i = 0; i < static_cast<int_t>(actionSlots.size()) + 2; ++i)
+        for (int_t i = 0; i < static_cast<int_t>(actionSlots.size()) + 3; ++i)
         {
             if (isSelectionAvailable(i))
             {
@@ -384,6 +329,8 @@ void LegacyControllerLayoutScreen::syncSelectedControl()
     }
 
     GuiButton *button = buttonForSelection(selectedControlIndex);
+    if (selectedControlIndex >= 0 && selectedControlIndex < static_cast<int_t>(actionSlots.size()))
+        lastSelectedBindingIndex = actionSlots[selectedControlIndex].bindingIndex;
     if (button != nullptr)
         button->setKeyboardSelected(true);
 }
@@ -436,7 +383,7 @@ void LegacyControllerLayoutScreen::moveSelection(int_t dirX, int_t dirY)
     int_t bestIndex = -1;
     long bestScore = 0;
 
-    for (int_t i = 0; i < static_cast<int_t>(actionSlots.size()) + 2; ++i)
+    for (int_t i = 0; i < static_cast<int_t>(actionSlots.size()) + 3; ++i)
     {
         if (i == selectedControlIndex || !isSelectionAvailable(i))
             continue;
@@ -556,6 +503,16 @@ void LegacyControllerLayoutScreen::resetDefaults()
     refreshLabels();
 }
 
+void LegacyControllerLayoutScreen::unbindSelectedAction()
+{
+    if (settings == nullptr || lastSelectedBindingIndex < 0 ||
+        lastSelectedBindingIndex >= static_cast<int_t>(settings->keyBindings.size()))
+        return;
+
+    settings->setKeyBinding(lastSelectedBindingIndex, 0);
+    refreshLabels();
+}
+
 void LegacyControllerLayoutScreen::actionPerformed(GuiButton *button)
 {
     if (button == nullptr || !button->enabled)
@@ -568,6 +525,11 @@ void LegacyControllerLayoutScreen::actionPerformed(GuiButton *button)
     if (button == resetButton)
     {
         resetDefaults();
+        return;
+    }
+    if (button == unbindButton)
+    {
+        unbindSelectedAction();
         return;
     }
     if (button == backButton)
@@ -693,47 +655,6 @@ void LegacyControllerLayoutScreen::updateScreen()
 #endif
 }
 
-void LegacyControllerLayoutScreen::drawConnectorForSlot(const ActionSlot &slot,
-    int_t centerX, int_t topY, bool highlighted)
-{
-    if (slot.button == nullptr)
-        return;
-
-    const ControllerAnchor anchor = anchorForKey(visualPadKeyForSlot(slot), centerX, topY);
-    if (!anchor.valid)
-        return;
-
-    const int_t color = highlighted ? 0xfff0d45d : 0xff6c7180;
-    const int_t startX = slot.leftSide
-        ? slot.button->xPosition + slot.button->getButtonWidth()
-        : slot.button->xPosition;
-    const int_t startY = slot.button->yPosition + slot.button->getButtonHeight() / 2;
-    // Stagger the elbow position for each row so the connector lines do not
-    // collapse into the same horizontal span near the controller.
-    const int_t bendBase = 48;
-    const int_t bendStep = 4;
-    const int_t bendOffset = std::max<int_t>(0, std::min<int_t>(slot.row, 4)) * bendStep;
-    const int_t bendX = slot.leftSide
-        ? centerX - (bendBase - bendOffset)
-        : centerX + (bendBase - bendOffset);
-
-    drawRect(std::min(startX, bendX), startY, std::max(startX, bendX) + 1, startY + 1, color);
-    drawRect(bendX, std::min(startY, anchor.y), bendX + 1, std::max(startY, anchor.y) + 1, color);
-    drawRect(std::min(bendX, anchor.x), anchor.y, std::max(bendX, anchor.x) + 1, anchor.y + 1, color);
-    drawRect(anchor.x - 1, anchor.y - 1, anchor.x + 2, anchor.y + 2, color);
-}
-
-void LegacyControllerLayoutScreen::drawControllerConnectors(int_t centerX, int_t topY)
-{
-    for (int_t i = 0; i < static_cast<int_t>(actionSlots.size()); ++i)
-    {
-        const bool highlighted = captureBindingIndex >= 0
-            ? actionSlots[i].bindingIndex == captureBindingIndex
-            : i == selectedControlIndex;
-        drawConnectorForSlot(actionSlots[i], centerX, topY, highlighted);
-    }
-}
-
 void LegacyControllerLayoutScreen::drawScreen(int_t mouseX, int_t mouseY, float_t partialTick)
 {
     drawLegacyBackground(partialTick);
@@ -747,76 +668,8 @@ void LegacyControllerLayoutScreen::drawScreen(int_t mouseX, int_t mouseY, float_
     }
     drawCenteredString(fontRenderer, subtitle, width / 2, legacyLayout.panelY + 24, 0x404040);
 
-    const int_t centerX = legacyLayout.panelX + legacyLayout.panelWidth / 2;
-    // Leave room for the larger image above the footer at low resolutions.
-    const int_t footerTop = resetButton != nullptr ? resetButton->yPosition
-        : legacyLayout.panelY + legacyLayout.panelHeight;
-    const int_t controllerTop = std::max<int_t>(legacyLayout.panelY + 36,
-        std::min<int_t>(legacyLayout.panelY + 46, footerTop - CONTROLLER_HEIGHT - 4));
-    drawControllerImage(centerX, controllerTop);
-#if PLATFORM_PS2
-    if (!controllerImageAvailable)
-    {
-        drawRect(centerX - 38, controllerTop + 17, centerX + 38, controllerTop + 54, 0xff777777);
-        drawRect(centerX - 34, controllerTop + 19, centerX + 34, controllerTop + 52, 0xffa8a8a8);
-        drawRect(centerX - 34, controllerTop + 3, centerX - 18, controllerTop + 15, 0xff777777);
-        drawRect(centerX + 18, controllerTop + 3, centerX + 34, controllerTop + 15, 0xff777777);
-        drawRect(centerX - 30, controllerTop + 24, centerX - 24, controllerTop + 38, 0xff404040);
-        drawRect(centerX - 34, controllerTop + 28, centerX - 20, controllerTop + 34, 0xff404040);
-        drawRect(centerX + 19, controllerTop + 22, centerX + 25, controllerTop + 28, 0xff405a9a);
-        drawRect(centerX + 30, controllerTop + 27, centerX + 36, controllerTop + 33, 0xff3d8c54);
-        drawRect(centerX + 19, controllerTop + 33, centerX + 25, controllerTop + 39, 0xffa04444);
-        drawRect(centerX + 8, controllerTop + 27, centerX + 14, controllerTop + 33, 0xffa48c36);
-        drawRect(centerX - 14, controllerTop + 40, centerX - 6, controllerTop + 48, 0xff555555);
-        drawRect(centerX + 6, controllerTop + 40, centerX + 14, controllerTop + 48, 0xff555555);
-    }
-#endif
-    drawControllerConnectors(centerX, controllerTop);
-
     updatePointerHover(mouseX, mouseY);
     GuiScreen::drawScreen(mouseX, mouseY, partialTick);
-
-    if (fontRenderer != nullptr && settings != nullptr)
-    {
-        const int_t imageLeft = centerX - CONTROLLER_WIDTH / 2;
-        const int_t imageRight = centerX + CONTROLLER_WIDTH / 2;
-        for (const ActionSlot &slot : actionSlots)
-        {
-            if (slot.button == nullptr || slot.bindingIndex < 0 ||
-                slot.bindingIndex >= static_cast<int_t>(settings->keyBindings.size()))
-                continue;
-
-            const int_t keyCode = visualPadKeyForSlot(slot);
-            std::string buttonName = keyCode == 0
-                ? uiText("Unbound")
-                : settings->getKeyDisplayString(keyCode);
-#if PLATFORM_PS2
-            if (settings->keyBindings[slot.bindingIndex] == settings->keyBindChat &&
-                keyCode == lwjgl::Keyboard::KEY_T)
-                buttonName = "Select";
-            else if (const char *padName = ps2PadKeyName(keyCode))
-                buttonName = padName;
-#endif
-
-            const int_t gapLeft = slot.leftSide
-                ? slot.button->xPosition + slot.button->getButtonWidth() + 4
-                : imageRight + 4;
-            const int_t gapRight = slot.leftSide
-                ? imageLeft - 4
-                : slot.button->xPosition - 4;
-            const int_t availableWidth = std::max<int_t>(0, gapRight - gapLeft);
-            buttonName = fontRenderer->trimStringToWidth(buttonName, availableWidth);
-            if (buttonName.empty())
-                continue;
-
-            const int_t textX = slot.leftSide
-                ? gapLeft
-                : gapRight - fontRenderer->getStringWidth(buttonName);
-            const int_t textY = slot.button->yPosition + 2;
-            const int_t color = actionHasConflict(slot.bindingIndex) ? 0xc00000 : 0x404040;
-            fontRenderer->drawString(buttonName, textX, textY, color);
-        }
-    }
 }
 
 void LegacyControllerLayoutScreen::onGuiClosed()

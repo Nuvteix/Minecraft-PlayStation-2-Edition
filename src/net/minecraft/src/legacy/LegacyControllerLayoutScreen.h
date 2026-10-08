@@ -26,8 +26,6 @@ private:
     struct ActionSlot
     {
         int_t bindingIndex = -1;
-        bool leftSide = true;
-        int_t row = 0;
         GuiButton *button = nullptr;
     };
 
@@ -40,11 +38,8 @@ private:
     void cancelCapture();
     void applyCapturedKey(int_t keyCode);
     void resetDefaults();
+    void unbindSelectedAction();
     void assignActionToCode(int_t keyCode, int_t bindingIndex);
-
-    void drawControllerImage(int_t centerX, int_t topY);
-    void drawControllerConnectors(int_t centerX, int_t topY);
-    void drawConnectorForSlot(const ActionSlot &slot, int_t centerX, int_t topY, bool highlighted);
 
     int_t selectionForButton(const GuiButton *button) const;
     GuiButton *buttonForSelection(int_t index) const;
@@ -55,7 +50,8 @@ private:
 
     std::vector<ActionSlot> actionSlots;
     GuiButton *resetButton;
+    GuiButton *unbindButton;
     GuiButton *backButton;
     int_t captureBindingIndex;
-    bool controllerImageAvailable = false;
+    int_t lastSelectedBindingIndex;
 };
