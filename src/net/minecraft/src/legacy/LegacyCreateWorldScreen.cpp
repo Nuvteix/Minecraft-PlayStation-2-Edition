@@ -484,11 +484,6 @@ void LegacyCreateWorldScreen::drawLegacyScene(float_t partialTick)
     else
         drawGradientRect(0, 0, width, height, static_cast<int_t>(0x14000000u), static_cast<int_t>(0x3c000000u));
 
-    LegacyMainMenuLayout titleLayout{};
-    titleLayout.titleY = layout.titleY;
-    titleLayout.titleMaxWidth = layout.titleMaxWidth;
-    titleLayout.titleMaxHeight = layout.titleMaxHeight;
-    legacyDrawTitleTexture(mc, titleLayout, width, zLevel, nullptr);
     panelRenderer.draw(layout);
 }
 

@@ -68,20 +68,10 @@ void drawLegacyLoadingBackground(Minecraft *mc, int_t width, int_t height)
     renderColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
-void drawLegacyLoadingTitle(Minecraft *mc, int_t width, int_t height)
-{
-    LegacyMainMenuLayout titleLayout{};
-    titleLayout.titleY = std::max<int_t>(12, height / 12);
-    titleLayout.titleMaxWidth = std::min<int_t>(360, width - 40);
-    titleLayout.titleMaxHeight = std::min<int_t>(72, std::max<int_t>(40, height / 6));
-    legacyDrawTitleTexture(mc, titleLayout, width, 1.0f, nullptr);
-}
-
 void drawLegacyLoadingProgress(Minecraft *mc, int_t width, int_t height, int_t progress,
     const std::string &message)
 {
     drawLegacyLoadingBackground(mc, width, height);
-    drawLegacyLoadingTitle(mc, width, height);
 
     FontRenderer *font = mc->fontRenderer;
     const int_t centerX = width / 2;

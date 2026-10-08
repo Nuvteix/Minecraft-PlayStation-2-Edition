@@ -599,6 +599,11 @@ void LegacyControllerLayoutScreen::updateScreen()
         // Start is deliberately not bindable on PS2, so it is a safe way to
         // leave capture without sacrificing Circle or any other remappable key.
         const Ps2PadSnapshot &pad = ps2PadGetSnapshot(platformMenuPad());
+        if ((pad.pressed & PS2_PAD_TRIANGLE) != 0 && captureBindingIndex >= 0)
+        {
+            applyCapturedKey(PS2_KEY_TRIANGLE);
+            ps2PadClearLatchedPressed(platformMenuPad());
+        }
         if ((pad.pressed & PS2_PAD_START) != 0)
             cancelCapture();
 #endif

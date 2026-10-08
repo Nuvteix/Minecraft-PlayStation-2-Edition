@@ -282,10 +282,6 @@ void GuiIngameMenu::drawScreen(int_t mouseX, int_t mouseY, float_t partialTick)
 		// Java's very dark 0xC0/0xD0 default overlay.
 		drawGradientRect(0, 0, width, height, legacyPauseOverlayTopColor(), legacyPauseOverlayBottomColor());
 
-		const LegacyMainMenuLayout layout = legacyMainMenuLayout(width, height, legacyPauseButtonCount());
-		if (!legacyDrawTitleTexture(mc, layout, width, zLevel, nullptr))
-			drawCenteredString(fontRenderer, "HERITAGE EDITION", width / 2, layout.titleY + 8, 0xffffff);
-
 		bool saving = !mc->theWorld->isSafeToSave(updateCounter2++);
 		if (saving || updateCounter < 20)
 		{

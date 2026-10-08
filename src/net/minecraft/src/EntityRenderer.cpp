@@ -1369,7 +1369,11 @@ void EntityRenderer::updateCameraAndRender(float partialTicks)
     int scaledMouseX = (mouseX * scaledWidth) / mc->displayWidth;
     int scaledMouseY = (mouseY * scaledHeight) / mc->displayHeight;
     
-    // Caracteres para limitFramerate: 0='\0', 1='x' (120), 2='(' (40)
+    // The PS2 exposes explicit 30/60 FPS caps; other platforms retain the
+    // legacy Max/Balanced/Power Saver values.
+#if PLATFORM_PS2
+    const long limitFps = mc->gameSettings->limitFramerate == 30 ? 30L : 60L;
+#else
     char fpsLimitChar = '\0';
     if (mc->gameSettings->limitFramerate == 1)
     {
@@ -1382,6 +1386,7 @@ void EntityRenderer::updateCameraAndRender(float partialTicks)
     // [FIX CRÍTICO WII] Prevenir división por cero si fpsLimitChar es '\0' (0).
     // Si limitFramerate es 0 (ilimitado) o tiene un valor anómalo, establecemos 120L para evitar congelamiento fatal en PowerPC.
     const long limitFps = (fpsLimitChar > '\0') ? static_cast<long>(fpsLimitChar) : 120L;
+#endif
     
     if (mc->theWorld != nullptr)
     {
@@ -1439,7 +1444,11 @@ void EntityRenderer::updateCameraAndRender(float partialTicks)
         
         setupOverlayRendering();
         
+    #if PLATFORM_PS2
+        if (mc->gameSettings->limitFramerate == 30 || mc->gameSettings->limitFramerate == 60)
+    #else
         if (mc->gameSettings->limitFramerate == 2)
+    #endif
         {
             int64_t sleepTime = (field_28133_I + (int64_t)(1000000000LL / limitFps) - 
                                 std::chrono::duration_cast<std::chrono::nanoseconds>(

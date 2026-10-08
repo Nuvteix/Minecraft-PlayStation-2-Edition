@@ -588,7 +588,13 @@ void GameSettings::setOptionValue(const EnumOptions *enumoptions, int_t i)
 		refreshTextures();
 	}
 	if (enumoptions == EnumOptions::FRAMERATE_LIMIT)
+	{
+#if PLATFORM_PS2
+		limitFramerate = limitFramerate == 30 ? 60 : 30;
+#else
 		limitFramerate = (limitFramerate + i + 3) % 3;
+#endif
+	}
 	if (enumoptions == EnumOptions::DIFFICULTY)
 		difficulty = (difficulty + i) & 3;
 	if (enumoptions == EnumOptions::GRAPHICS)
@@ -984,7 +990,13 @@ std::string GameSettings::getKeyBinding(const EnumOptions *enumoptions)
 	if (enumoptions == EnumOptions::PARTICLES)
 		return s + translateKey(PARTICLES[particleSetting]);
 	if (enumoptions == EnumOptions::FRAMERATE_LIMIT)
+	{
+#if PLATFORM_PS2
+		return s + (limitFramerate == 30 ? "30 FPS" : "60 FPS");
+#else
 		return s + translateKey(LIMIT_FRAMERATES[limitFramerate]);
+#endif
+	}
 	if (enumoptions == EnumOptions::GRAPHICS)
 	{
 		if (fancyGraphics)
