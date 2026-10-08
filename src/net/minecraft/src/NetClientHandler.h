@@ -107,6 +107,7 @@ public:
     void processReadPackets();
 	bool processPendingRespawnIfAny();
 	bool consumeAbortWorldTickAfterPacketBatch();
+    bool shouldStopProcessingPackets() const override { return respawnPending; }
     
     // Packet handlers - nombres basados en los de Java, renombrando ofuscados
     void handleLogin(Packet1Login* packet);

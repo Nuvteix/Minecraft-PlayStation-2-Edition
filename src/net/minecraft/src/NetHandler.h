@@ -74,6 +74,7 @@ class NetHandler
 public:
 	virtual ~NetHandler() = default;
 	virtual bool isServerHandler() { return false; }
+	virtual bool shouldStopProcessingPackets() const { return false; }
 	virtual void registerPacket(Packet &) {}
 	virtual void handleErrorMessage(const std::string &, const std::vector<std::string> &) {}
 	virtual void handleKeepAlive(Packet0KeepAlive &) {}

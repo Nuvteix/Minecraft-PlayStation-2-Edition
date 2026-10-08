@@ -321,6 +321,9 @@ void NetworkManager::processReadPackets()
 	// visible frame hitch.
 	for (int_t i = MAX_PACKETS_PER_TICK; i-- > 0;)
 	{
+		if (netHandler != nullptr && netHandler->shouldStopProcessingPackets())
+			break;
+
 		std::unique_ptr<Packet> packet;
 		{
 			std::lock_guard<PlatformMutex> guard(readQueueLock);
@@ -345,6 +348,8 @@ void NetworkManager::processReadPackets()
 						static_cast<long long>(System::currentTimeMillis() - packet->creationTimeMillis));
 #endif
 				packet->processPacket(*netHandler);
+				if (netHandler->shouldStopProcessingPackets())
+					break;
 			}
 			catch (std::exception &exception)
 			{

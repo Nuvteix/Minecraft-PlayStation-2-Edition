@@ -1170,60 +1170,11 @@ void NetClientHandler::handleRespawn(Packet9Respawn* packet)
     if (packet == nullptr || mc == nullptr || mc->thePlayer == nullptr)
         return;
 
-    const bool dimensionChanged = packet->respawnDimension != mc->thePlayer->dimension;
-
-    if (dimensionChanged)
-    {
-        terrainDownloaded = false;
-
-        WorldType *terrainType =
-            packet->terrainType != nullptr ? packet->terrainType : WorldType::DEFAULT;
-
-        WorldSettings settings(
-            0L,
-            packet->creativeMode,
-            false,
-            false,
-            terrainType
-        );
-
-        WorldClient *newWorld = new WorldClient(
-            this,
-            settings,
-            packet->respawnDimension,
-            packet->difficulty
-        );
-
-        newWorld->multiplayerWorld = true;
-
-        // Fontos: a handler worldClientje még changeWorld1() előtt átálljon,
-        // hogy ugyanabban a packet batch-ben a respawn utáni csomagok már az
-        // új worldre érkezzenek.
-        worldClient = newWorld;
-
-        mc->changeWorld1(newWorld);
-
-        if (mc->thePlayer != nullptr)
-            mc->thePlayer->dimension = packet->respawnDimension;
-
-        mc->displayGuiScreen(new GuiDownloadTerrain(this));
-    }
-
-    // Network-triggered respawn: ne fusson le szinkron preloadWorld().
-    mc->respawn(true, packet->respawnDimension, false, false);
-
-    // MP pathon a playerController mindig PlayerControllerMP. A dynamic_cast
-    // elkerülhető, ha a PS2 RTTI/unaligned issue gyanús.
-    if (mc->isMultiplayerWorld() && mc->playerController != nullptr)
-    {
-        PlayerControllerMP *controller =
-            static_cast<PlayerControllerMP *>(mc->playerController);
-
-        controller->setCreative(packet->creativeMode == 1);
-    }
-
-    // A jelenlegi WorldClient::tick() folyamatban van. Ha ez respawn volt,
-    // a tick()-nek a processReadPackets() után azonnal meg kell szakadnia.
+    respawnDimension = packet->respawnDimension;
+    respawnDifficulty = packet->difficulty;
+    respawnCreative = packet->creativeMode;
+    respawnTerrainType = packet->terrainType;
+    respawnPending = true;
     abortWorldTickAfterPacketBatch = true;
 }
 
@@ -1580,10 +1531,43 @@ bool NetClientHandler::isServerHandler()
 
 bool NetClientHandler::processPendingRespawnIfAny()
 {
-    // Deprecated: Packet9Respawn most azonnal kezeli a world swap-et, és a
-    // régi world törlését a Minecraft::worldsToDelete deferred queue végzi.
+    if (!respawnPending || mc == nullptr || mc->thePlayer == nullptr)
+        return false;
+
+    const int_t dimension = respawnDimension;
+    const int_t difficulty = respawnDifficulty;
+    const int_t creative = respawnCreative;
+    WorldType *terrainType = respawnTerrainType != nullptr
+        ? respawnTerrainType
+        : WorldType::DEFAULT;
     respawnPending = false;
-    return false;
+    abortWorldTickAfterPacketBatch = false;
+
+    if (dimension != mc->thePlayer->dimension)
+    {
+        terrainDownloaded = false;
+
+        WorldSettings settings(0L, creative, false, false, terrainType);
+        WorldClient *newWorld = new WorldClient(this, settings, dimension, difficulty);
+        newWorld->multiplayerWorld = true;
+        worldClient = newWorld;
+
+        mc->changeWorld1(newWorld);
+        if (mc->thePlayer != nullptr)
+            mc->thePlayer->dimension = dimension;
+        mc->displayGuiScreen(new GuiDownloadTerrain(this));
+    }
+
+    mc->respawn(true, dimension, false, false);
+
+    if (mc->isMultiplayerWorld() && mc->playerController != nullptr)
+    {
+        PlayerControllerMP *controller =
+            static_cast<PlayerControllerMP *>(mc->playerController);
+        controller->setCreative(creative == 1);
+    }
+
+    return true;
 }
 
 bool NetClientHandler::consumeAbortWorldTickAfterPacketBatch()

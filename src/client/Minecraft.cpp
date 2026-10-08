@@ -1732,6 +1732,9 @@ void Minecraft::runTick()
     }
 #endif
 
+    if (NetClientHandler *sendQueue = getSendQueue())
+        sendQueue->processPendingRespawnIfAny();
+
     // Safe point to free GUI screens scrapped by purgeOwnedGuiScreens(): no screen
     // handler is on the call stack here.
     if (!guiScreensToDelete.empty())
