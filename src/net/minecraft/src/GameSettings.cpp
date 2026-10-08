@@ -110,7 +110,11 @@ void GameSettings::setDefaults()
 	anaglyph = false;
 	advancedOpengl = false;
 	limitFramerate = 1;
+#ifdef PS2_PLATFORM
+	fancyGraphics = false;
+#else
 	fancyGraphics = true;
+#endif
 	ambientOcclusion = true;
 	skin = "Default"; // Resource identifier, not a UI label.
 	keyBindAttack = new KeyBinding("key.attack", -100);
@@ -204,7 +208,11 @@ void GameSettings::setDefaults()
 	ofProfiler = false;
 	ofBetterSnow = false;
 	ofSwampColors = true;
+#ifdef PS2_PLATFORM
+	ofSmoothBiomes = false;
+#else
 	ofSmoothBiomes = true;
+#endif
 	ofRandomMobs = PLATFORM_OPTIFINE_RANDOM_MOBS != 0;
 	ofCustomColors = true;
 	ofConnectedTextures = platformGameSettingsDefaultConnectedTextures();
