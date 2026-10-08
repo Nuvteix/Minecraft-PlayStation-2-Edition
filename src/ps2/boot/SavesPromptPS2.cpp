@@ -142,9 +142,10 @@ SaveLocation ps2_show_saves_prompt() {
     const Ps2BootRenderer::Color C_LGRAY   = {146, 152, 166, 0x80};
     const Ps2BootRenderer::Color C_HOVER  = {255, 255, 160, 0x80};
 
-    const float titleScale = 2.0f;
-    const float subScale = 1.0f;
-    const float labelScale = 1.0f;
+    const float titleScale = 4.0f;
+    const float subScale = 2.0f;
+    const float labelScale = 2.0f;
+    const float noteScale = 1.0f;
     const float hintScale = 2.0f;
     const float CS = has_font ? (float)font.cell : 8.0f;
     const float cx = W * 0.5f;
@@ -154,7 +155,7 @@ SaveLocation ps2_show_saves_prompt() {
     const float buttonH = 24.0f;
     const float buttonGap = 6.0f;
     const float buttonX = (W - buttonW) * 0.5f;
-    const float buttonY = static_cast<float>(static_cast<int>(H * 0.40f));
+    const float buttonY = static_cast<float>(static_cast<int>(H * 0.42f));
 
     const int SEL_MC   = 0;
     const int SEL_MASS = 1;
@@ -175,13 +176,17 @@ SaveLocation ps2_show_saves_prompt() {
         ++frame;
 
         if (has_font) {
-            const float titleY = static_cast<float>(static_cast<int>(H * 0.20f));
-            sp_str_cx(font, cx, titleY, Z, "Save Location", titleScale, C_WHITE);
-            sp_str_cx(font, cx, titleY + CS * titleScale + 8.0f, Z,
-                      "Choose where to save your worlds", subScale, C_LGRAY);
+            const float titleY = static_cast<float>(static_cast<int>(H * 0.11f));
+            const float fittedTitleScale = sp_fit_scale(font, "Save Location", titleScale, W - 32.0f);
+            sp_str_cx(font, cx, titleY, Z, "Save Location", fittedTitleScale, C_WHITE);
+            const float subtitleY = titleY + CS * fittedTitleScale + 6.0f;
+            const float fittedSubtitleScale = sp_fit_scale(
+                font, "Choose where to save your worlds", subScale, W - 32.0f);
+            sp_str_cx(font, cx, subtitleY, Z,
+                      "Choose where to save your worlds", fittedSubtitleScale, C_LGRAY);
             if (!has_mass)
-                sp_str_cx(font, cx, titleY + CS * titleScale + CS * subScale + 16.0f,
-                          Z, "USB DRIVE NOT DETECTED", hintScale, C_LGRAY);
+                sp_str_cx(font, cx, subtitleY + CS * fittedSubtitleScale + 8.0f,
+                          Z, "USB DRIVE NOT DETECTED", noteScale, C_LGRAY);
         }
 
         const char* labels[3] = {"Memory Card", "USB Drive", "Don't Save"};
