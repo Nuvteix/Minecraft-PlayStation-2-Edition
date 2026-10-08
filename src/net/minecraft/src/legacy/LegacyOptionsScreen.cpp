@@ -224,7 +224,8 @@ void LegacyOptionsScreen::drawLegacyBackground(float_t partialTick)
     titleLayout.titleY = legacyLayout.titleY;
     titleLayout.titleMaxWidth = legacyLayout.titleMaxWidth;
     titleLayout.titleMaxHeight = legacyLayout.titleMaxHeight;
-    legacyDrawTitleTexture(mc, titleLayout, width, zLevel, nullptr);
+    if (drawsLegacyTitle())
+        legacyDrawTitleTexture(mc, titleLayout, width, zLevel, nullptr);
 
     if (panelVisible)
         panelRenderer.draw(legacyLayout);

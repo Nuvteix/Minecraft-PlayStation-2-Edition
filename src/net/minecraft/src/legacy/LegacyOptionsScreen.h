@@ -33,6 +33,7 @@ protected:
     void updateLegacyPointerHover(int_t mouseX, int_t mouseY);
     void drawLegacyBackground(float_t partialTick);
     virtual void drawFooterHints();
+    virtual bool drawsLegacyTitle() const { return true; }
     virtual void returnToParent();
 
     GuiScreen *parentScreen;

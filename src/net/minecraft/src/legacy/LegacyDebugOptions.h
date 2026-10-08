@@ -16,6 +16,7 @@ public:
     void drawScreen(int_t mouseX, int_t mouseY, float_t partialTick) override;
 
 protected:
+    bool drawsLegacyTitle() const override { return false; }
     void actionPerformed(GuiButton *button) override;
     void keyTyped(char_t c, int_t key) override;
 

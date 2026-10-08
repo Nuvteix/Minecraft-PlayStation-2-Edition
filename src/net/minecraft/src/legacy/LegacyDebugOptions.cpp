@@ -45,6 +45,9 @@ LegacyDebugOptions::LegacyDebugOptions(GuiScreen *parent, GameSettings *settings
 void LegacyDebugOptions::initGui()
 {
     configureLegacyLayout(8, true, LegacyOptionsLayoutPreset::Compact);
+    const int_t centeredPanelY = (height - legacyLayout.panelHeight) / 2;
+    legacyLayout.firstRowY += centeredPanelY - legacyLayout.panelY;
+    legacyLayout.panelY = centeredPanelY;
     const int_t x = legacyLayout.contentX;
     const int_t w = legacyLayout.contentWidth;
     const int_t h = legacyLayout.rowHeight;
