@@ -26,8 +26,7 @@ namespace
 {
 constexpr int_t BUTTON_ACTION_BASE = 7300;
 constexpr int_t BUTTON_RESET = 7400;
-constexpr int_t BUTTON_UNBIND = 7401;
-constexpr int_t BUTTON_BACK = 7402;
+constexpr int_t BUTTON_BACK = 7401;
 
 bool pointInside(int_t x, int_t y, int_t left, int_t top, int_t width, int_t height)
 {
@@ -84,8 +83,7 @@ void drawPanelTitle(FontRenderer *font, const std::string &text, int_t centerX, 
 LegacyControllerLayoutScreen::LegacyControllerLayoutScreen(GuiScreen *parent, GameSettings *settings,
     LegacyOptionsBackgroundMode backgroundMode)
     : LegacyOptionsScreen(parent, settings, backgroundMode),
-      resetButton(nullptr), unbindButton(nullptr), backButton(nullptr),
-      captureBindingIndex(-1), lastSelectedBindingIndex(-1)
+            resetButton(nullptr), backButton(nullptr), captureBindingIndex(-1)
 {
 }
 
@@ -135,13 +133,8 @@ void LegacyControllerLayoutScreen::initGui()
         }
     };
 
-    // Keep the layout screen focused on the actions that have a physical PS2
-    // controller mapping. Analog movement and camera axes remain unchanged.
+    // Movement stays on the analog stick; list only button-driven actions.
     appendBinding(settings->keyBindUseItem);
-    appendBinding(settings->keyBindForward);
-    appendBinding(settings->keyBindLeft);
-    appendBinding(settings->keyBindBack);
-    appendBinding(settings->keyBindRight);
     appendBinding(settings->keyBindAttack);
     appendBinding(settings->keyBindJump);
     appendBinding(settings->keyBindInventory);
@@ -171,20 +164,16 @@ void LegacyControllerLayoutScreen::initGui()
 
     const int_t footerY = panelBottom - legacyLayout.rowHeight - 4;
     const int_t gap = 2;
-    const int_t footerButtonWidth = (contentW - gap * 2) / 3;
-    resetButton = new LegacyGuiButton(BUTTON_RESET, contentX, footerY, footerButtonWidth,
+    const int_t halfWidth = (contentW - gap) / 2;
+    resetButton = new LegacyGuiButton(BUTTON_RESET, contentX, footerY, halfWidth,
         legacyLayout.rowHeight, uiText("Reset"));
-    unbindButton = new LegacyGuiButton(BUTTON_UNBIND, contentX + footerButtonWidth + gap,
-        footerY, footerButtonWidth, legacyLayout.rowHeight, uiText("Unbind"));
-    backButton = new LegacyGuiButton(BUTTON_BACK, contentX + (footerButtonWidth + gap) * 2,
-        footerY, contentW - (footerButtonWidth + gap) * 2, legacyLayout.rowHeight, uiText("Back"));
+    backButton = new LegacyGuiButton(BUTTON_BACK, contentX + halfWidth + gap, footerY,
+        contentW - halfWidth - gap, legacyLayout.rowHeight, uiText("Back"));
     controlList.push_back(resetButton);
-    controlList.push_back(unbindButton);
     controlList.push_back(backButton);
 
     hoveredControlIndex = -1;
     selectedControlIndex = 0;
-    lastSelectedBindingIndex = actionSlots.empty() ? -1 : actionSlots.front().bindingIndex;
     refreshLabels();
     syncSelectedControl();
 }
@@ -274,10 +263,8 @@ int_t LegacyControllerLayoutScreen::selectionForButton(const GuiButton *button) 
             return i;
     if (button == resetButton)
         return static_cast<int_t>(actionSlots.size());
-    if (button == unbindButton)
-        return static_cast<int_t>(actionSlots.size()) + 1;
     if (button == backButton)
-        return static_cast<int_t>(actionSlots.size()) + 2;
+        return static_cast<int_t>(actionSlots.size()) + 1;
     return -1;
 }
 
@@ -288,8 +275,6 @@ GuiButton *LegacyControllerLayoutScreen::buttonForSelection(int_t index) const
     if (index == static_cast<int_t>(actionSlots.size()))
         return resetButton;
     if (index == static_cast<int_t>(actionSlots.size()) + 1)
-        return unbindButton;
-    if (index == static_cast<int_t>(actionSlots.size()) + 2)
         return backButton;
     return nullptr;
 }
@@ -318,7 +303,7 @@ void LegacyControllerLayoutScreen::syncSelectedControl()
 
     if (!isSelectionAvailable(selectedControlIndex))
     {
-        for (int_t i = 0; i < static_cast<int_t>(actionSlots.size()) + 3; ++i)
+        for (int_t i = 0; i < static_cast<int_t>(actionSlots.size()) + 2; ++i)
         {
             if (isSelectionAvailable(i))
             {
@@ -329,8 +314,6 @@ void LegacyControllerLayoutScreen::syncSelectedControl()
     }
 
     GuiButton *button = buttonForSelection(selectedControlIndex);
-    if (selectedControlIndex >= 0 && selectedControlIndex < static_cast<int_t>(actionSlots.size()))
-        lastSelectedBindingIndex = actionSlots[selectedControlIndex].bindingIndex;
     if (button != nullptr)
         button->setKeyboardSelected(true);
 }
@@ -383,7 +366,7 @@ void LegacyControllerLayoutScreen::moveSelection(int_t dirX, int_t dirY)
     int_t bestIndex = -1;
     long bestScore = 0;
 
-    for (int_t i = 0; i < static_cast<int_t>(actionSlots.size()) + 3; ++i)
+    for (int_t i = 0; i < static_cast<int_t>(actionSlots.size()) + 2; ++i)
     {
         if (i == selectedControlIndex || !isSelectionAvailable(i))
             continue;
@@ -505,11 +488,11 @@ void LegacyControllerLayoutScreen::resetDefaults()
 
 void LegacyControllerLayoutScreen::unbindSelectedAction()
 {
-    if (settings == nullptr || lastSelectedBindingIndex < 0 ||
-        lastSelectedBindingIndex >= static_cast<int_t>(settings->keyBindings.size()))
+    if (settings == nullptr || selectedControlIndex < 0 ||
+        selectedControlIndex >= static_cast<int_t>(actionSlots.size()))
         return;
 
-    settings->setKeyBinding(lastSelectedBindingIndex, 0);
+    settings->setKeyBinding(actionSlots[selectedControlIndex].bindingIndex, 0);
     refreshLabels();
 }
 
@@ -525,11 +508,6 @@ void LegacyControllerLayoutScreen::actionPerformed(GuiButton *button)
     if (button == resetButton)
     {
         resetDefaults();
-        return;
-    }
-    if (button == unbindButton)
-    {
-        unbindSelectedAction();
         return;
     }
     if (button == backButton)
@@ -628,6 +606,15 @@ void LegacyControllerLayoutScreen::updateScreen()
     GuiScreen::updateScreen();
     syncSelectedControl();
 
+#if PLATFORM_PS2
+    const Ps2PadSnapshot &pad = ps2PadGetSnapshot(platformMenuPad());
+    if ((pad.pressed & PS2_PAD_TRIANGLE) != 0 && selectedControlIndex >= 0 &&
+        selectedControlIndex < static_cast<int_t>(actionSlots.size()))
+    {
+        unbindSelectedAction();
+    }
+#endif
+
 #if PLATFORM_PS2 || PLATFORM_WII
     if (platformTextInputExclusive())
         return;
@@ -660,7 +647,7 @@ void LegacyControllerLayoutScreen::drawScreen(int_t mouseX, int_t mouseY, float_
     drawLegacyBackground(partialTick);
     drawPanelTitle(fontRenderer, uiText("Edit Layout"), width / 2, legacyLayout.panelY + 8);
 
-    std::string subtitle = uiText("Select a command to edit.");
+    std::string subtitle = uiText("Triangle unbinds selected action.");
     if (captureBindingIndex >= 0 && settings != nullptr &&
         captureBindingIndex < static_cast<int_t>(settings->keyBindings.size()))
     {

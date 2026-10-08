@@ -50,8 +50,6 @@ private:
 
     std::vector<ActionSlot> actionSlots;
     GuiButton *resetButton;
-    GuiButton *unbindButton;
     GuiButton *backButton;
     int_t captureBindingIndex;
-    int_t lastSelectedBindingIndex;
 };
