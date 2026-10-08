@@ -44,6 +44,7 @@ void platformGameSettingsInitialize(GameSettings& settings)
 	settings.keyBindRight->keyCode = PS2_KEY_DPAD_RIGHT;
 	settings.keyBindJump->keyCode = PS2_KEY_CROSS;
 	settings.keyBindSneak->keyCode = PS2_KEY_L3;
+	settings.keyBindSprint->keyCode = 0;
 	settings.keyBindChat->keyCode = PS2_KEY_SELECT;
 	settings.keyBindPlayerList->keyCode = 0;
 	settings.keyBindDebug->keyCode = 0;
@@ -61,6 +62,7 @@ void platformGameSettingsResetControlBindings(GameSettings& settings)
 	settings.keyBindRight->keyCode = PS2_KEY_DPAD_RIGHT;
 	settings.keyBindJump->keyCode = PS2_KEY_CROSS;
 	settings.keyBindSneak->keyCode = PS2_KEY_L3;
+	settings.keyBindSprint->keyCode = 0;
 	settings.keyBindChat->keyCode = PS2_KEY_SELECT;
 	settings.keyBindPlayerList->keyCode = 0;
 	settings.keyBindDebug->keyCode = 0;

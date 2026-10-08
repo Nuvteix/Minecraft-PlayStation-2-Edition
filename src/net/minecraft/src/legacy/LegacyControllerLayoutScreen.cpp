@@ -144,6 +144,7 @@ void LegacyControllerLayoutScreen::initGui()
         appendBinding(settings->keyBindCrafting);
     appendBinding(settings->keyBindDrop);
     appendBinding(settings->keyBindSneak);
+    appendBinding(settings->keyBindSprint);
     appendBinding(settings->keyBindChat);
     appendBinding(settings->keyBindPlayerList);
     appendBinding(settings->keyBindDebug);

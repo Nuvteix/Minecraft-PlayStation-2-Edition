@@ -803,7 +803,7 @@ void GuiIngame::renderGameOverlay(float_t partialTick, bool showDebug, int_t mou
 	drawTexturedModalRect((sw / 2 - 91 - 1) + inv->currentItem * 20, hudHeight - 22 - 1, 0, 22, 24, 22);
 #endif
 
-	if (!showDebug)
+	if (!showDebug && mc->gameSettings->thirdPersonView == 0)
 	{
 		renderBindTexture(mc->renderEngine->getTexture("/gui/icons.png"));
 		renderEnable(RenderCapability::Blend);

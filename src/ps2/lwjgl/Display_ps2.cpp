@@ -8,6 +8,7 @@
 #include "lwjgl/Display.h"
 
 #include "client/Minecraft.h"
+#include "net/minecraft/src/GameSettings.h"
 #include "net/minecraft/src/GuiScreen.h"
 #include "ps2/render/Ps2Tuning.h"
 #include "ps2/render/Ps2Draw2D.h"
@@ -771,15 +772,17 @@ void swapBuffers()
     // the old fallback paid every configured field even if the frame had already
     // overrun its budget. The hardware clock is monotonic and already backs the
     // renderer's per-frame budgets.
-    static int s_fieldsPerFrame = 0;
-    if (s_fieldsPerFrame == 0)
-    {
-        const int fieldHz = (gsGlobal->Mode == GS_MODE_PAL) ? 50 : 60;
-        s_fieldsPerFrame = Ps2FramePacingPolicy::fieldsPerFrame(fieldHz, PS2_TARGET_FPS);
-    }
+    int targetFps = PS2_TARGET_FPS;
+    Minecraft *minecraft = Minecraft::getMinecraft();
+    if (minecraft != nullptr && minecraft->gameSettings != nullptr &&
+        (minecraft->gameSettings->limitFramerate == 30 || minecraft->gameSettings->limitFramerate == 60))
+        targetFps = minecraft->gameSettings->limitFramerate;
+
+    const int fieldHz = (gsGlobal->Mode == GS_MODE_PAL) ? 50 : 60;
+    const int fieldsPerFrame = Ps2FramePacingPolicy::fieldsPerFrame(fieldHz, targetFps);
 
     static std::uint64_t s_lastPresentUs = 0;
-    const std::uint64_t periodUs = Ps2FramePacingPolicy::targetPeriodUs(PS2_TARGET_FPS);
+    const std::uint64_t periodUs = Ps2FramePacingPolicy::targetPeriodUs(targetFps);
 
     // The first field is not optional. DISPFB2 is not latched at vblank, so the
     // flip below lands on whatever raster line the CRTC is scanning: presenting
@@ -799,7 +802,7 @@ void swapBuffers()
     long long pacingWaitNs = 0;
     int extraFieldsWaited = 0;
 #endif
-    for (int field = 1; field < s_fieldsPerFrame; ++field)
+    for (int field = 1; field < fieldsPerFrame; ++field)
     {
         const std::uint64_t nowUs = PlatformCompat::getMonotonicMicros();
         if (!Ps2FramePacingPolicy::shouldWaitForTarget(s_lastPresentUs, nowUs, periodUs))

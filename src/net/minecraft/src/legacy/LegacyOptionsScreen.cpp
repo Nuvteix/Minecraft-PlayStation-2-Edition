@@ -27,6 +27,12 @@ LegacyOptionsScreen::LegacyOptionsScreen(GuiScreen *parent, GameSettings *settin
 void LegacyOptionsScreen::configureLegacyLayout(int_t rowCount, bool drawPanel, LegacyOptionsLayoutPreset preset)
 {
     legacyLayout = legacyOptionsLayout(width, height, rowCount, preset);
+    if (!drawsLegacyTitle())
+    {
+        const int_t centeredPanelY = (height - legacyLayout.panelHeight) / 2;
+        legacyLayout.firstRowY += centeredPanelY - legacyLayout.panelY;
+        legacyLayout.panelY = centeredPanelY;
+    }
     panelVisible = drawPanel;
     hoveredControlIndex = -1;
     panoramaAvailable = backgroundMode == LegacyOptionsBackgroundMode::Panorama &&

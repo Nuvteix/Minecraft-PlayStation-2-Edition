@@ -194,6 +194,23 @@ void EntityPlayerSP::onLivingUpdate()
 	pushOutOfBlocks(posX + (double)width * 0.35, boundingBox->minY + 0.5, posZ + (double)width * 0.35);
 
 	const bool hasFoodForSprinting = (float)getFoodStats()->getFoodLevel() > 6.0f;
+	const bool sprintKeyDown = mc != nullptr && mc->gameSettings != nullptr &&
+		mc->gameSettings->keyBindSprint != nullptr && mc->gameSettings->keyBindSprint->pressed;
+	const bool sprintKeyCanStart = movementInput != nullptr && onGround &&
+		movementInput->moveForward >= sprintThreshold && !movementInput->sneak &&
+		hasFoodForSprinting && !isUsingItem() && !isPotionActive(Potion::blindness);
+	if (sprintKeyDown && sprintKeyCanStart)
+	{
+		setSprinting(true);
+		sprintKeyActivated = true;
+		sprintToggleTimer = 0;
+	}
+	else if (!sprintKeyDown && sprintKeyActivated)
+	{
+		setSprinting(false);
+		sprintKeyActivated = false;
+	}
+
 	if (movementInput != nullptr && onGround && !wasMovingForward && movementInput->moveForward >= sprintThreshold &&
 		!isSprinting() && hasFoodForSprinting && !isUsingItem() && !isPotionActive(Potion::blindness))
 	{

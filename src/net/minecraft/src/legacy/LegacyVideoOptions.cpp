@@ -28,6 +28,7 @@ enum LegacyVideoButtonId
     BUTTON_DEFLICKER = 307,
     BUTTON_ASPECT_RATIO = 308,
     BUTTON_FOV = 309,
+    BUTTON_FRAMERATE_LIMIT = 310,
     BUTTON_DONE = 399
 };
 
@@ -36,7 +37,8 @@ enum LegacyVideoButtonId
 LegacyVideoOptions::LegacyVideoOptions(GuiScreen *parent, GameSettings *settingsValue,
     LegacyOptionsBackgroundMode backgroundModeValue)
     : LegacyOptionsScreen(parent, settingsValue, backgroundModeValue), graphicsCheckbox(nullptr), smoothLightingCheckbox(nullptr),
-      viewBobbingCheckbox(nullptr), cloudsCheckbox(nullptr), fogCheckbox(nullptr), deflickerCheckbox(nullptr)
+            viewBobbingCheckbox(nullptr), cloudsCheckbox(nullptr), fogCheckbox(nullptr), deflickerCheckbox(nullptr),
+            framerateButton(nullptr)
 {
 }
 
@@ -45,7 +47,7 @@ void LegacyVideoOptions::initGui()
 #if PLATFORM_WII
     const int_t rowCount = 8;
 #elif PLATFORM_PS2
-    const int_t rowCount = 8;
+    const int_t rowCount = 9;
 #else
     const int_t rowCount = 9;
 #endif
@@ -101,6 +103,9 @@ void LegacyVideoOptions::initGui()
 #if PLATFORM_PS2
     controlList.push_back(new LegacyGuiButton(BUTTON_ASPECT_RATIO, x, legacyLayout.rowY(row++), w, h,
         settings->getKeyBinding(EnumOptions::ASPECT_RATIO)));
+    framerateButton = new LegacyGuiButton(BUTTON_FRAMERATE_LIMIT, x, legacyLayout.rowY(row++), w, h,
+        settings->getKeyBinding(EnumOptions::FRAMERATE_LIMIT));
+    controlList.push_back(framerateButton);
 #endif
     controlList.push_back(new LegacyGuiButton(BUTTON_DONE, x, legacyLayout.rowY(row), w, h, uiText("Done")));
 }
@@ -164,6 +169,11 @@ void LegacyVideoOptions::actionPerformed(GuiButton *button)
         return;
     }
 #endif
+    case BUTTON_FRAMERATE_LIMIT:
+        settings->setOptionValue(EnumOptions::FRAMERATE_LIMIT, 1);
+        if (framerateButton != nullptr)
+            framerateButton->displayString = settings->getKeyBinding(EnumOptions::FRAMERATE_LIMIT);
+        return;
     case BUTTON_DONE:
         returnToParent();
         return;

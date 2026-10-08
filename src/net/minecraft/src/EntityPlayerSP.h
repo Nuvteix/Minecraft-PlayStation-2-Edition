@@ -68,4 +68,5 @@ protected:
 
 	Minecraft *mc;
 	int_t sprintToggleTimer;
+	bool sprintKeyActivated = false;
 };
