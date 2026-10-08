@@ -44,6 +44,13 @@ constexpr int_t BUTTON_NEXT = 7101;
 constexpr int_t BUTTON_RESET = 7102;
 constexpr int_t BUTTON_BACK = 7103;
 constexpr int_t BUTTON_DEADZONE = 7104;
+constexpr int_t BUTTON_SNEAK_MODE = 7106;
+constexpr int_t BUTTON_SPRINT_MODE = 7107;
+
+std::string modeLabel(const char *name, bool toggle)
+{
+    return std::string(uiText(name)) + ": " + uiText(toggle ? "Toggle" : "Hold");
+}
 
 bool reservedCaptureKey(int_t key)
 {
@@ -84,7 +91,7 @@ void LegacyControlsScreen::initGui()
     captureRow = -1;
     platformSetPadRebindExclusive(false);
     rows.clear();
-    configureLegacyLayout(PLATFORM_PS2 ? 5 : 4, true, LegacyOptionsLayoutPreset::Wide);
+    configureLegacyLayout(PLATFORM_PS2 ? 7 : 4, true, LegacyOptionsLayoutPreset::Wide);
     const int_t x = legacyLayout.contentX;
     const int_t w = legacyLayout.contentWidth;
     const int_t h = legacyLayout.rowHeight;
@@ -97,8 +104,12 @@ void LegacyControlsScreen::initGui()
 #if PLATFORM_PS2
     controlList.push_back(new LegacyGuiButton(BUTTON_DEADZONE, x, legacyLayout.rowY(3), w, h,
         uiText("Deadzone Settings")));
+    controlList.push_back(new LegacyGuiButton(BUTTON_SNEAK_MODE, x, legacyLayout.rowY(4), w, h,
+        modeLabel("Sneak", settings->sneakToggleMode)));
+    controlList.push_back(new LegacyGuiButton(BUTTON_SPRINT_MODE, x, legacyLayout.rowY(5), w, h,
+        modeLabel("Sprint", settings->sprintToggleMode)));
 #endif
-    controlList.push_back(new LegacyGuiButton(BUTTON_BACK, x, legacyLayout.rowY(PLATFORM_PS2 ? 4 : 3), w, h, uiText("Back")));
+    controlList.push_back(new LegacyGuiButton(BUTTON_BACK, x, legacyLayout.rowY(PLATFORM_PS2 ? 6 : 3), w, h, uiText("Back")));
     syncLegacySelection();
     return;
     }
@@ -270,6 +281,22 @@ void LegacyControlsScreen::actionPerformed(GuiButton *button)
         invertControlsCheckbox->setChecked(settings->invertMouse);
         return;
     }
+#if PLATFORM_PS2
+    if (button->id == BUTTON_SNEAK_MODE)
+    {
+        settings->sneakToggleMode = !settings->sneakToggleMode;
+        button->displayString = modeLabel("Sneak", settings->sneakToggleMode);
+        settings->saveOptions();
+        return;
+    }
+    if (button->id == BUTTON_SPRINT_MODE)
+    {
+        settings->sprintToggleMode = !settings->sprintToggleMode;
+        button->displayString = modeLabel("Sprint", settings->sprintToggleMode);
+        settings->saveOptions();
+        return;
+    }
+#endif
 #if !PLATFORM_PS2
     if (button->id >= BUTTON_ROW_BASE && button->id < BUTTON_ROW_BASE + rowsPerPage)
     {

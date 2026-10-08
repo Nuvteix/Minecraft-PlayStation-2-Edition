@@ -102,6 +102,8 @@ public:
 	KeyBinding *keyBindToggleFog;
 	KeyBinding *keyBindSneak;
 	KeyBinding *keyBindSprint;
+	bool sneakToggleMode;
+	bool sprintToggleMode;
 	std::vector<KeyBinding *> keyBindings;
 	Minecraft *mc;
 	std::string optionsFile;

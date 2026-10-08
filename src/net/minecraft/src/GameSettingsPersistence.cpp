@@ -170,6 +170,10 @@ void GameSettings::loadOptions()
 					advancedOpengl = value == "true";
 				if (key == "fpsLimit")
 					limitFramerate = parseIntJava(value);
+				if (key == "sneakToggle")
+					sneakToggleMode = value == "true";
+				if (key == "sprintToggle")
+					sprintToggleMode = value == "true";
 				if (key == "difficulty")
 					difficulty = parseIntJava(value);
 				if (key == "fancyGraphics")
@@ -446,6 +450,7 @@ void GameSettings::saveOptions()
 		"music", "sound", "invertYMouse", "mouseSensitivity", "fov", "viewDistance",
 		"guiScale", "particles", "bobView", "anaglyph3d", "advancedOpengl", "fpsLimit",
 		"difficulty", "fancyGraphics", "ao", "skin", "lastServer", "lang", "playerName", "selectedSkin", "selectedSkinP2", "legacyUI",
+		"sneakToggle", "sprintToggle",
 		"legacyLook", "legacyCrafting", "legacyCreative", "legacyGuiScaleRestore",
 		"alternativeControllerLayout", "wiiAlternativeControls", "controllerDeadzone", "wiiStickDeadzone",
 		"ofFogFancy", "ofFogOff", "ofFogStart", "ofLoadFar", "ofPreloadedChunks", "ofOcclusionFancy",
@@ -520,6 +525,8 @@ void GameSettings::saveOptions()
 	printwriter << "anaglyph3d:" << (anaglyph ? "true" : "false") << "\n";
 	printwriter << "advancedOpengl:" << (advancedOpengl ? "true" : "false") << "\n";
 	printwriter << "fpsLimit:" << limitFramerate << "\n";
+		printwriter << "sneakToggle:" << (sneakToggleMode ? "true" : "false") << "\n";
+		printwriter << "sprintToggle:" << (sprintToggleMode ? "true" : "false") << "\n";
 	printwriter << "difficulty:" << difficulty << "\n";
 	printwriter << "fancyGraphics:" << (fancyGraphics ? "true" : "false") << "\n";
 	printwriter << "ao:" << (ambientOcclusion ? "true" : "false") << "\n";

@@ -133,6 +133,8 @@ void GameSettings::setDefaults()
 	keyBindToggleFog = new KeyBinding("key.fog", 33);
 	keyBindSneak = new KeyBinding("key.sneak", 42);
 	keyBindSprint = new KeyBinding("Sprint", lwjgl::Keyboard::KEY_LCONTROL);
+	sneakToggleMode = PLATFORM_PS2 != 0;
+	sprintToggleMode = PLATFORM_PS2 != 0;
 	legacyCrafting = true;
 	platformGameSettingsInitialize(*this);
 	keyBindings = {

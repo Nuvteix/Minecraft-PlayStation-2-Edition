@@ -165,6 +165,23 @@ void EntityPlayerSP::onLivingUpdate()
 	bool wasMovingForward = movementInput != nullptr && movementInput->moveForward >= sprintThreshold;
 	if (movementInput != nullptr)
 		movementInput->updatePlayerMoveState(this);
+	if (movementInput != nullptr && mc != nullptr && mc->gameSettings != nullptr &&
+	    mc->gameSettings->keyBindSneak != nullptr)
+	{
+		const bool sneakKeyDown = mc->gameSettings->keyBindSneak->pressed;
+		if (mc->gameSettings->sneakToggleMode)
+		{
+			if (sneakKeyDown && !sneakKeyWasDown)
+				sneakToggleState = !sneakToggleState;
+			movementInput->sneak = sneakToggleState;
+		}
+		else
+		{
+			movementInput->sneak = sneakKeyDown;
+			sneakToggleState = false;
+		}
+		sneakKeyWasDown = sneakKeyDown;
+	}
 #ifdef PS2_PLATFORM
 	// While a screen is open the player must stand still. On PC that happens by
 	// itself: movement comes from key events and opening a screen releases them
@@ -199,20 +216,46 @@ void EntityPlayerSP::onLivingUpdate()
 		mc->gameSettings->keyBindSprint != nullptr && mc->gameSettings->keyBindSprint->pressed;
 	const bool sprintKeyCanStart = movementInput != nullptr && onGround &&
 		movementInput->moveForward >= sprintThreshold && !movementInput->sneak &&
-		hasFoodForSprinting && !isUsingItem() && !isPotionActive(Potion::blindness);
-	if (sprintKeyDown && sprintKeyCanStart)
+		hasFoodForSprinting && !isUsingItem() && !isPotionActive(Potion::blindness) && !isCollidedHorizontally;
+	const bool sprintToggleMode = mc != nullptr && mc->gameSettings != nullptr && mc->gameSettings->sprintToggleMode;
+	if (sprintToggleMode)
 	{
-		setSprinting(true);
-		sprintKeyActivated = true;
-		sprintToggleTimer = 0;
-	}
-	else if (!sprintKeyDown && sprintKeyActivated)
-	{
-		setSprinting(false);
+		if (sprintKeyDown && !sprintKeyWasDown && !isSprinting())
+		{
+			sprintToggleRequested = true;
+			sprintToggleTimer = 0;
+		}
+		sprintKeyWasDown = sprintKeyDown;
 		sprintKeyActivated = false;
+		if (sprintToggleRequested && movementInput != nullptr &&
+		    movementInput->moveForward >= sprintThreshold && sprintKeyCanStart)
+			setSprinting(true);
+		else if (sprintToggleRequested &&
+		         (!hasFoodForSprinting || isUsingItem() || isPotionActive(Potion::blindness) ||
+		          isSneaking() || isCollidedHorizontally ||
+	          (isSprinting() && (movementInput == nullptr || movementInput->moveForward < sprintThreshold))))
+		{
+			setSprinting(false);
+			sprintToggleRequested = false;
+		}
+	}
+	else
+	{
+		sprintKeyWasDown = sprintKeyDown;
+		if (sprintKeyDown && sprintKeyCanStart)
+		{
+			setSprinting(true);
+			sprintKeyActivated = true;
+			sprintToggleTimer = 0;
+		}
+		else if (!sprintKeyDown && sprintKeyActivated)
+		{
+			setSprinting(false);
+			sprintKeyActivated = false;
+		}
 	}
 
-	if (movementInput != nullptr && onGround && !wasMovingForward && movementInput->moveForward >= sprintThreshold &&
+	if (!sprintToggleMode && movementInput != nullptr && onGround && !wasMovingForward && movementInput->moveForward >= sprintThreshold &&
 		!isSprinting() && hasFoodForSprinting && !isUsingItem() && !isPotionActive(Potion::blindness))
 	{
 		if (sprintToggleTimer == 0)

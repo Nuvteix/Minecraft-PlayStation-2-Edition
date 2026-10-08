@@ -95,9 +95,7 @@ void LegacyControllerLayoutScreen::initGui()
     actionSlots.clear();
     captureBindingIndex = -1;
     platformSetPadRebindExclusive(false);
-    const int_t layoutRows = std::max<int_t>(1, std::min<int_t>(10,
-        legacyOptionsMaxRows(width, height, LegacyOptionsLayoutPreset::Wide)));
-    configureLegacyLayout(layoutRows, true, LegacyOptionsLayoutPreset::Wide);
+    configureLegacyLayout(10, true, LegacyOptionsLayoutPreset::Wide);
 
     // Widen this screen for two readable columns while preserving the footer.
     const int_t originalPanelWidth = legacyLayout.panelWidth;

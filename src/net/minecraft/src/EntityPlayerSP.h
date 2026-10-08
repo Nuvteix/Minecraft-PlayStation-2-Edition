@@ -69,4 +69,8 @@ protected:
 	Minecraft *mc;
 	int_t sprintToggleTimer;
 	bool sprintKeyActivated = false;
+	bool sprintToggleRequested = false;
+	bool sprintKeyWasDown = false;
+	bool sneakToggleState = false;
+	bool sneakKeyWasDown = false;
 };
