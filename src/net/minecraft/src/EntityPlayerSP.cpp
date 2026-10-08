@@ -78,17 +78,18 @@ void EntityPlayerSP::moveEntity(double d, double d1, double d2)
 
 void EntityPlayerSP::updatePlayerActionState()
 {
-	EntityPlayer::updatePlayerActionState();
-	if (movementInput != nullptr)
-	{
-		moveStrafing = movementInput->moveStrafe;
-		moveForward = movementInput->moveForward;
-		isJumping = movementInput->jump;
-		prevRenderArmYaw = renderArmYaw;
-		prevRenderArmPitch = renderArmPitch;
-		renderArmPitch += (rotationPitch - renderArmPitch) * 0.5f;
-		renderArmYaw += (rotationYaw - renderArmYaw) * 0.5f;
-	}
+    EntityPlayer::updatePlayerActionState();
+    if (movementInput != nullptr)
+    {
+        moveStrafing = movementInput->moveStrafe;
+        moveForward  = movementInput->moveForward;
+        isJumping = movementInput->jump;
+        SNEAK_MEMBER = movementInput->sneak;
+        prevRenderArmYaw   = renderArmYaw;
+        prevRenderArmPitch = renderArmPitch;
+        renderArmPitch += (rotationPitch - renderArmPitch) * 0.5f;
+        renderArmYaw   += (rotationYaw   - renderArmYaw)   * 0.5f;
+    }
 }
 
 void EntityPlayerSP::onLivingUpdate()
