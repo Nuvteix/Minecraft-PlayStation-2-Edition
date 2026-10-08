@@ -937,6 +937,20 @@ void WorldClient::setEntityDead(Entity *entity)
 #endif
 }
 
+void WorldClient::detachEntityForWorldChange(Entity *entity)
+{
+	if (entity == nullptr)
+		return;
+
+	entitySpawnQueue.remove(entity);
+	knownEntities.remove(entity);
+	if (entityHash != nullptr &&
+	    static_cast<Entity *>(entityHash->lookup(entity->entityId)) == entity)
+		entityHash->removeObject(entity->entityId);
+
+	World::detachEntityForWorldChange(entity);
+}
+
 void WorldClient::unloadEntities(const std::vector<Entity *> &list)
 {
 	// Java WorldClient keeps live network entities strongly referenced in

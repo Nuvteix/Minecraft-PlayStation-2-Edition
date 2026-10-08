@@ -48,6 +48,7 @@ public:
 	ulong_t getDeferredEntityChunkPromotions() const { return deferredEntityChunkPromotions; }
 	bool entityJoinedWorld(Entity *entity) override;
 	void setEntityDead(Entity *entity) override;
+	void detachEntityForWorldChange(Entity *entity) override;
 	void unloadEntities(const std::vector<Entity *> &list) override;
 	void addEntityToWorld(int_t entityId, Entity *entity);
 	void applyNetworkPosition(Entity *entity, double x, double y, double z, float yaw, float pitch);
