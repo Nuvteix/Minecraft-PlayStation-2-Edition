@@ -30,7 +30,7 @@ SaveStorageState& state()
 namespace Ps2SaveStorage
 {
 
-std::string configRoot() { return "mc0:/OPTICRAFT_CFG"; }
+std::string configRoot() { return PlatformStorage::join(root(), "OPTICRAFT_CFG"); }
 
 bool available(Target targetValue)
 {
@@ -61,11 +61,12 @@ bool readConfiguration(const std::string &path, std::vector<unsigned char> &out)
 
 bool writeConfiguration(const std::string &path, const void *data, std::size_t length)
 {
+    const std::string config = configRoot();
     if (length > 1024 * 1024 || (length != 0 && data == nullptr) ||
-        path.compare(0, configRoot().size() + 1, configRoot() + "/") != 0 ||
-        !available(Target::MemoryCard)) return false;
+        path.compare(0, config.size() + 1, config + "/") != 0 ||
+        !available(target())) return false;
 
-    PlatformStorage::mkdirs(configRoot());
+    PlatformStorage::mkdirs(config);
 
     return PlatformStorage::writeFile(path, data, length);
 }

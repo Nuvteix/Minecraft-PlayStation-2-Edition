@@ -223,12 +223,48 @@ bool fontValid(const Font& font)
     return font.cell > 0 && textureValid(font.texture);
 }
 
+static float glyphInkWidth(const Font& font, unsigned char code)
+{
+    if (code == ' ')
+        return static_cast<float>(font.cell) * 0.5f;
+
+    const BootTextureImplementation* impl = implementation(font.texture);
+    if (!impl || !impl->cpuPixels)
+        return static_cast<float>(font.cell);
+
+    const int glyphX = (code % 16) * font.cell;
+    const int glyphY = (code / 16) * font.cell;
+    int inkWidth = 0;
+    for (int x = 0; x < font.cell; ++x)
+    {
+        for (int y = 0; y < font.cell; ++y)
+        {
+            const int pixel = (glyphY + y) * font.texture.width + glyphX + x;
+            if (impl->cpuPixels[pixel] != 0)
+            {
+                inkWidth = x + 1;
+                break;
+            }
+        }
+    }
+    return inkWidth > 0 ? static_cast<float>(inkWidth) : static_cast<float>(font.cell) * 0.5f;
+}
+
 float textWidth(const Font& font, const char* text, float scale)
 {
     if (!fontValid(font) || !text)
         return 0.0f;
 
-    return static_cast<float>(std::strlen(text)) * static_cast<float>(font.cell) * scale;
+    float width = 0.0f;
+    bool first = true;
+    while (*text)
+    {
+        if (!first)
+            width += 1.0f;
+        width += glyphInkWidth(font, static_cast<unsigned char>(*text++));
+        first = false;
+    }
+    return width * scale;
 }
 
 void clear(Color color)
@@ -274,22 +310,22 @@ void drawText(const Font& font,
 
     setAlphaBlend(true);
 
-    const float cellSize = static_cast<float>(font.cell) * scale;
     while (*text)
     {
         const int code = static_cast<unsigned char>(*text++);
-        if (code >= 0x20 && code <= 0x7E)
+        const float glyphWidth = glyphInkWidth(font, static_cast<unsigned char>(code));
+        if (code > 0x20 && code <= 0x7E)
         {
             const float u0 = static_cast<float>((code % 16) * font.cell);
             const float v0 = static_cast<float>((code / 16) * font.cell);
             drawTexture(font.texture,
                         x, y, u0, v0,
-                        x + cellSize, y + cellSize,
-                        u0 + font.cell, v0 + font.cell,
+                        x + glyphWidth * scale, y + static_cast<float>(font.cell) * scale,
+                        u0 + glyphWidth, v0 + font.cell,
                         z,
                         color);
         }
-        x += cellSize;
+        x += (glyphWidth + 1.0f) * scale;
     }
 }
 

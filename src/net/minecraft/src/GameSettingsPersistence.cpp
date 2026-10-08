@@ -114,6 +114,7 @@ void GameSettings::loadOptions()
 {
 	bool loadedLegacyGuiScaleRestore = false;
 #ifdef PS2_PLATFORM
+	optionsFile = Ps2SaveStorage::configRoot() + "/options.txt";
 	bool loadedLegacyCrafting = false;
 	std::vector<int_t> savedPadBindings(keyBindings.size(), -1);
 #endif
@@ -446,7 +447,8 @@ float GameSettings::parseFloat(const std::string &s)
 void GameSettings::saveOptions()
 {
 #ifdef PS2_PLATFORM
-    if (!Ps2SaveStorage::available(Ps2SaveStorage::Target::MemoryCard))
+	optionsFile = Ps2SaveStorage::configRoot() + "/options.txt";
+	if (!Ps2SaveStorage::available(Ps2SaveStorage::target()))
     {
         Ps2SaveStorage::reportConfigurationSave(false);
         return;

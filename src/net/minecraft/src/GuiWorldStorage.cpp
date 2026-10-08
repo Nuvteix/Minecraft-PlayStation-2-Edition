@@ -27,17 +27,13 @@ void GuiWorldStorage::actionPerformed(GuiButton *b)
     if (!b || !b->enabled) return;
     if (b->id == 0) { returnToParent(); return; }
     if (mc->theWorld != nullptr) return; // Never redirect an active world's writes.
-    if (!Ps2SaveStorage::available(Ps2SaveStorage::Target::MemoryCard))
-    {
-        mc->displayGuiScreen(new GuiStorageMessage(this, settings,
-            "Insert a formatted Memory Card in slot 1 to save settings."));
-        return;
-    }
     const auto target = b->id == 2 ? Ps2SaveStorage::Target::MassStorage : Ps2SaveStorage::Target::MemoryCard;
     if (!Ps2SaveStorage::available(target))
     {
         mc->displayGuiScreen(new GuiStorageMessage(this, settings,
-            "USB Drive unavailable. Connect the drive and try again."));
+            target == Ps2SaveStorage::Target::MassStorage
+                ? "USB Drive unavailable. Connect the drive and try again."
+                : "Memory Card unavailable. Insert a formatted card and try again."));
         return;
     }
     const auto previous = Ps2SaveStorage::target();
@@ -61,7 +57,7 @@ void GuiWorldStorage::drawScreen(int_t x, int_t y, float_t tick)
     drawCenteredString(fontRenderer, uiText("World Storage"), width / 2, 20, 0xffffff);
     fontRenderer->drawSplitString(uiText(mc->theWorld != nullptr
         ? "Leave the world before changing storage."
-        : "Settings always use Memory Card. Existing worlds are not moved."),
+        : "Settings use the selected device. Existing worlds are not moved."),
         20, 42, width - 40, 0xffffff);
     updateLegacyPointerHover(x, y);
     GuiScreen::drawScreen(x, y, tick);

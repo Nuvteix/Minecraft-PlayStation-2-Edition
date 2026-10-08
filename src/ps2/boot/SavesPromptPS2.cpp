@@ -18,13 +18,14 @@ static void sp_bg_draw(const Ps2BootRenderer::Texture& background, float width, 
     if (!Ps2BootRenderer::textureValid(background))
         return;
 
-    Ps2BootRenderer::setTextureRepeat(true);
+    Ps2BootRenderer::setTextureRepeat(false);
     Ps2BootRenderer::drawTexture(background,
                                  0.0f, 0.0f, 0.0f, 0.0f,
-                                 width, height, width, height,
+                                 width, height,
+                                 static_cast<float>(background.width),
+                                 static_cast<float>(background.height),
                                  z,
-                                 {0x20, 0x20, 0x20, 0x80});
-    Ps2BootRenderer::setTextureRepeat(false);
+                                 {0x70, 0x78, 0x90, 0x80});
 }
 
 static void sp_str(const Ps2BootRenderer::Font& font,
@@ -170,7 +171,11 @@ SaveLocation ps2_show_saves_prompt() {
 
     u32 vram_base = Ps2BootRenderer::checkpointVram();
     Ps2BootRenderer::Font font; bool has_font = Ps2BootRenderer::loadFontAsset("assets/font/default.png", font);
-    Ps2BootRenderer::Texture bg; Ps2BootRenderer::loadTextureAsset("assets/gui/background.png", bg, Ps2BootRenderer::TextureFilter::Nearest, Ps2BootRenderer::TextureAlphaMode::SourceAlpha);
+    Ps2BootRenderer::Texture bg;
+    if (!Ps2BootRenderer::loadTextureAsset("assets/title/bg/panorama0.png", bg,
+            Ps2BootRenderer::TextureFilter::Linear, Ps2BootRenderer::TextureAlphaMode::SourceAlpha))
+        Ps2BootRenderer::loadTextureAsset("assets/gui/background.png", bg,
+            Ps2BootRenderer::TextureFilter::Nearest, Ps2BootRenderer::TextureAlphaMode::SourceAlpha);
 
     // Flat, dark palette. Color.a is the GS 0..128 scale, not 0..255 -- every
     // color below is fully opaque (0x80) except the shadow layers, which are

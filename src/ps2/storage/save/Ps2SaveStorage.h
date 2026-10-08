@@ -15,7 +15,7 @@ namespace Ps2SaveStorage
         MassStorage
     };
 
-    // Configuration never follows the world target.
+    // Configuration and worlds share the selected save device.
     std::string configRoot();
     bool readConfiguration(const std::string &path, std::vector<unsigned char> &out);
     bool writeConfiguration(const std::string &path, const void *data, std::size_t length);

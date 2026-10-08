@@ -20,16 +20,19 @@ void selectStorage()
         target = Ps2SaveStorage::Target::MassStorage;
 
     Ps2SaveStorage::setTarget(target);
-    Ps2SaveStorage::reportConfigurationSave(ready);
-    if (!ready)
+    const bool configReady = Ps2SaveStorage::available(target);
+    Ps2SaveStorage::reportConfigurationSave(configReady);
+    if (!configReady)
     {
-        MC_LOG_WARN("save", "[PS2] Memory Card unavailable; configuration remains on mc0.\n");
+        MC_LOG_WARN("save", "[PS2] Selected save device unavailable; configuration cannot be saved.\n");
         return;
     }
     const std::string config = Ps2SaveStorage::configRoot();
     PlatformStorage::mkdirs(config);
-    // Non-destructive compatibility import from the old Memory Card root.
-    // Existing destination files always win; USB files and world folders are untouched.
+    if (target != Ps2SaveStorage::Target::MemoryCard || !ready)
+        return;
+
+    // Preserve settings from the old Memory Card root when Memory Card storage is selected.
     for (const char *name : {"options.txt", "servers.dat"})
     {
         const std::string destination = PlatformStorage::join(config, name);
