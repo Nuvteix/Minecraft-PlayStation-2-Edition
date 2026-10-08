@@ -152,7 +152,7 @@ SaveLocation ps2_show_saves_prompt() {
 
     const int   BTN_COUNT = has_mass ? 3 : 2;
     const float buttonW = W < 224.0f ? W - 24.0f : 200.0f;
-    const float buttonH = 24.0f;
+    const float buttonH = 28.0f;
     const float buttonGap = 6.0f;
     const float buttonX = (W - buttonW) * 0.5f;
     const float buttonY = static_cast<float>(static_cast<int>(H * 0.42f));
