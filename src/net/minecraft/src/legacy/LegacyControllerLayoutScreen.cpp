@@ -224,6 +224,9 @@ void LegacyControllerLayoutScreen::initGui()
         appendBinding(settings->keyBindCrafting);
     appendBinding(settings->keyBindDrop);
     appendBinding(settings->keyBindSneak);
+    appendBinding(settings->keyBindChat);
+    appendBinding(settings->keyBindPlayerList);
+    appendBinding(settings->keyBindDebug);
 
     const int_t leftCount = (static_cast<int_t>(bindings.size()) + 1) / 2;
     for (int_t i = 0; i < static_cast<int_t>(bindings.size()); ++i)
@@ -751,11 +754,69 @@ void LegacyControllerLayoutScreen::drawScreen(int_t mouseX, int_t mouseY, float_
     const int_t controllerTop = std::max<int_t>(legacyLayout.panelY + 36,
         std::min<int_t>(legacyLayout.panelY + 46, footerTop - CONTROLLER_HEIGHT - 4));
     drawControllerImage(centerX, controllerTop);
-    if (controllerImageAvailable)
-        drawControllerConnectors(centerX, controllerTop);
+#if PLATFORM_PS2
+    if (!controllerImageAvailable)
+    {
+        drawRect(centerX - 38, controllerTop + 17, centerX + 38, controllerTop + 54, 0xff777777);
+        drawRect(centerX - 34, controllerTop + 19, centerX + 34, controllerTop + 52, 0xffa8a8a8);
+        drawRect(centerX - 34, controllerTop + 3, centerX - 18, controllerTop + 15, 0xff777777);
+        drawRect(centerX + 18, controllerTop + 3, centerX + 34, controllerTop + 15, 0xff777777);
+        drawRect(centerX - 30, controllerTop + 24, centerX - 24, controllerTop + 38, 0xff404040);
+        drawRect(centerX - 34, controllerTop + 28, centerX - 20, controllerTop + 34, 0xff404040);
+        drawRect(centerX + 19, controllerTop + 22, centerX + 25, controllerTop + 28, 0xff405a9a);
+        drawRect(centerX + 30, controllerTop + 27, centerX + 36, controllerTop + 33, 0xff3d8c54);
+        drawRect(centerX + 19, controllerTop + 33, centerX + 25, controllerTop + 39, 0xffa04444);
+        drawRect(centerX + 8, controllerTop + 27, centerX + 14, controllerTop + 33, 0xffa48c36);
+        drawRect(centerX - 14, controllerTop + 40, centerX - 6, controllerTop + 48, 0xff555555);
+        drawRect(centerX + 6, controllerTop + 40, centerX + 14, controllerTop + 48, 0xff555555);
+    }
+#endif
+    drawControllerConnectors(centerX, controllerTop);
 
     updatePointerHover(mouseX, mouseY);
     GuiScreen::drawScreen(mouseX, mouseY, partialTick);
+
+    if (fontRenderer != nullptr && settings != nullptr)
+    {
+        const int_t imageLeft = centerX - CONTROLLER_WIDTH / 2;
+        const int_t imageRight = centerX + CONTROLLER_WIDTH / 2;
+        for (const ActionSlot &slot : actionSlots)
+        {
+            if (slot.button == nullptr || slot.bindingIndex < 0 ||
+                slot.bindingIndex >= static_cast<int_t>(settings->keyBindings.size()))
+                continue;
+
+            const int_t keyCode = visualPadKeyForSlot(slot);
+            std::string buttonName = keyCode == 0
+                ? uiText("Unbound")
+                : settings->getKeyDisplayString(keyCode);
+#if PLATFORM_PS2
+            if (settings->keyBindings[slot.bindingIndex] == settings->keyBindChat &&
+                keyCode == lwjgl::Keyboard::KEY_T)
+                buttonName = "Select";
+            else if (const char *padName = ps2PadKeyName(keyCode))
+                buttonName = padName;
+#endif
+
+            const int_t gapLeft = slot.leftSide
+                ? slot.button->xPosition + slot.button->getButtonWidth() + 4
+                : imageRight + 4;
+            const int_t gapRight = slot.leftSide
+                ? imageLeft - 4
+                : slot.button->xPosition - 4;
+            const int_t availableWidth = std::max<int_t>(0, gapRight - gapLeft);
+            buttonName = fontRenderer->trimStringToWidth(buttonName, availableWidth);
+            if (buttonName.empty())
+                continue;
+
+            const int_t textX = slot.leftSide
+                ? gapLeft
+                : gapRight - fontRenderer->getStringWidth(buttonName);
+            const int_t textY = slot.button->yPosition + 2;
+            const int_t color = actionHasConflict(slot.bindingIndex) ? 0xc00000 : 0x404040;
+            fontRenderer->drawString(buttonName, textX, textY, color);
+        }
+    }
 }
 
 void LegacyControllerLayoutScreen::onGuiClosed()
