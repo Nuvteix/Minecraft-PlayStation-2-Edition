@@ -46,19 +46,19 @@
 // That phase is the single worst spike in the port: the [PS2][FRAME] log
 // reported "slowTick=randomBlocks" at 162.9 / 176.2 / 182.8 ms against a tick
 // AVERAGE of 4-10ms, which is what turns a 30 fps stretch into a visible 4 fps
-// stall. Radius 2 makes it sweep all 25 resident chunks every tick, and each
-// chunk can hit findTopSolidBlock + getBiomeGenAt (the snow/ice branch) and 8
+// stall. The current visible radius has 9 simulation chunks; each visited chunk
+// can hit findTopSolidBlock + getBiomeGenAt (the snow/ice branch) and 8
 // updateTick calls, any of which can cascade through setBlockWithNotify.
 //
 // Round-robin instead: visit this many chunks per tick and carry a cursor across
 // ticks, so the PER-CHUNK overhead (the cave-sound light probe, the snow
 // branch's findTopSolidBlock + getBiomeGenAt, the chunk lookup) is divided by
-// 25/N while every chunk is still reached.
+// 9/N while every visible simulation chunk is still reached.
 //
 // This is NOT a world-speed cut. updateBlocksAndPlayCaveSounds scales
-// PS2_RANDOM_BLOCK_TICKS_PER_CHUNK by exactly the same 25/N factor, so the
-// number of random block ticks issued per world tick is unchanged (25 chunks x
-// 8 == 5 chunks x 40) and grass, crops, saplings, leaf decay and fluids run at
+// PS2_RANDOM_BLOCK_TICKS_PER_CHUNK by the same 9/N factor, so the number of
+// random block ticks per active simulation window stays proportional, and grass,
+// crops, saplings, leaf decay and fluids run at
 // the rate PS2_RANDOM_BLOCK_TICKS_PER_CHUNK alone decides. Only the fixed
 // per-chunk cost is spread.
 //

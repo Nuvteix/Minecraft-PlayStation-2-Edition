@@ -13,38 +13,25 @@
 // with the chunk constants below.
 #define PS2_DEFAULT_RENDER_DISTANCE 3
 
-// PS2 playable profile: 2 chunk radius around the player.
-// This means a 5x5 horizontal chunk grid for world rendering/loading.
-// PC keeps the normal vanilla/OptiFine render distance table.
-#define PS2_VISIBLE_CHUNK_RADIUS 2
+// Performance profile: 1 chunk radius gives a 3x3 visible grid instead of 5x5,
+// reducing rendered section slots from 75 to 27. The chunk cache stays at radius
+// 2 to retain a one-chunk streaming lead. PC keeps the normal render distance.
+#define PS2_VISIBLE_CHUNK_RADIUS 1
 #define PS2_VISIBLE_CHUNK_DIAMETER (PS2_VISIBLE_CHUNK_RADIUS * 2 + 1)
 
-// The vanilla world is 128 blocks tall (8 sections), but a 5x8x5 grid would
-// require 200 renderer slots. Keep three sections centred on the player instead:
-// 5x3x5 = 75 slots, essentially the same fixed cost as the old 3x8x3 = 72 grid,
-// while extending the horizontal window from 16 to 32 blocks. PC is unaffected.
+// The vanilla world is 128 blocks tall (8 sections), but PS2 keeps only three
+// sections centred on the player: 3x3x3 = 27 renderer slots. PC is unaffected.
 #define PS2_VERTICAL_CHUNK_COUNT 3
 #define PS2_CENTER_VERTICAL_RENDERERS 1
 
 // Chunk cache policy. This radius is deliberately ONE LARGER than
 // PS2_VISIBLE_CHUNK_RADIUS: it is the streaming window, not the render window.
 //
-// At radius 2 the two were equal, and canChunkExist() then refused every chunk
-// outside the 5x5 the renderer was already drawing. A chunk therefore entered the
-// generation queue at the exact moment it became visible, with no lead time, and
-// PS2_GENERATE_CHUNKS_PER_TICK/PS2_GENERATION_BUDGET_US had to produce it inside
-// one world tick or the player saw a hole. Crossing a border exposes 3 new chunks
-// (5 counting the corners of a diagonal), which is more than the streamer can
-// build at the frame rates this port runs at.
-//
-// Radius 3 gives it a one-chunk ring of lead time, which is also what makes the
-// direction-scored prefetch in EntityRenderer::prefetchNearbyChunks useful --
-// that code clamps its own radius to this value, so at radius 2 it could only
-// ever re-request chunks that were already mandatory.
-//
-// Cost is ~24 extra resident columns, roughly 2 MB. Measured heap use at radius 2
-// was 8 MB of the 32 MB budget, so this stays well inside it. Watch mallocUsed in
-// the [PS2][FRAME] log; radius 2 is the rollback.
+// The visible radius is one, so cache radius two provides a one-chunk lead ring.
+// That gives generation and direction-scored prefetch time to finish chunks
+// before they enter the reduced 3x3 render window. Increasing the cache to three
+// would add about 24 resident columns (~2 MB); keep two as the memory/performance
+// balance and watch mallocUsed in the [PS2][FRAME] log.
 //
 // Simulation radii are NOT tied to this any more -- see PS2_RANDOM_TICK_CHUNK_RADIUS
 // and PS2_MOB_SPAWN_CHUNK_RADIUS, both pinned to the visible radius. Growing the
@@ -53,12 +40,8 @@
 // The unload radius stays one beyond the cache radius as a hysteresis margin, so
 // walking one chunk does not cause immediate delete/reload thrashing.
 //
-// Back at radius 2 for memory: 25 mandatory / 49 maximum columns instead of
-// 49 / 81, about 2 MB less resident world. The price is the lead-time ring
-// described above -- a chunk enters the generation queue when it becomes
-// visible, so crossing a border at speed can show a hole for a tick or two
-// until the streamer catches up. If that is worse than the OOM it buys off,
-// 3 / 4 is the rollback.
+// Cache radius two retains 25 columns around the 9-column visible window (49
+// maximum with hysteresis), preserving the lead ring while limiting residency.
 #define PS2_CHUNK_CACHE_RADIUS 2
 #define PS2_CHUNK_UNLOAD_RADIUS 3
 #define PS2_CHUNK_MAP_RESERVE 64
