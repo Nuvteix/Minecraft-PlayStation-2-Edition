@@ -550,7 +550,9 @@ void GameSettings::saveOptions()
 	printwriter << "legacyGuiScaleRestore:" << legacyGuiScaleRestore << "\n";
 	printwriter << "alternativeControllerLayout:" << (alternativeControllerLayout ? "true" : "false") << "\n";
 	printwriter << "controllerDeadzone:" << controllerDeadzone << "\n";
+#ifndef PS2_PLATFORM
 	platformGameSettingsWriteOptions(*this, printwriter);
+#endif
 #if PLATFORM_HAS_ASPECT_RATIO_OPTION
 	printwriter << "widescreen:" << (widescreen ? "true" : "false") << "\n";
 #endif
