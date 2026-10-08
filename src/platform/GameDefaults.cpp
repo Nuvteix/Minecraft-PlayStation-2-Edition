@@ -27,6 +27,10 @@ const PlatformGameDefaults& platformGameDefaults()
         // break alone is 4x4x4 EntityFX, each a live entity with its own
         // collision sweep every tick; PS2 skips particles outright.
         d.particleSetting = 1;
+#elif PLATFORM_PS2
+        // Minimal particle setting reduces ambient and block-break effects on
+        // the 32 MB console while leaving the player's particle option usable.
+        d.particleSetting = 2;
 #else
         d.particleSetting = 0;
 #endif

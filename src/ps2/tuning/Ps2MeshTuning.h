@@ -471,13 +471,11 @@
 //                                 only here is in the merge itself or in the
 //                                 REGION_REPEAT tiling that merged quads need.
 //
-// Keep merged rectangles small on PS2. Large 8x8/16x16 quads occasionally
-// intersect the camera/near guard and one of their strip triangles projects as
-// a long textured spike (most visible in third person). 2x2 still removes up to
-// 75% of equal faces on broad terrain while keeping the primitive close to the
-// per-block geometry for which both the VU0 clipper and direct VU1 path are
-// stable. Raise only for diagnostic testing.
-#define PS2_GREEDY_MAX_MERGE 2
+// Keep merged rectangles bounded on PS2. Very large 8x8/16x16 quads can
+// intersect the camera/near guard and project as long textured spikes. 4x4
+// cuts broad equal-face terrain to one quarter the quads of 2x2 while keeping
+// spans small enough for the guarded VU0/VU1 paths.
+#define PS2_GREEDY_MAX_MERGE 4
 
 // One face direction contains 16 independent planes. Scanning all 16 in one
 // WorldRenderer step still produced 44-56ms tail samples while terrain was
@@ -498,12 +496,12 @@
 // every frame; the destroy grid is per axis (2 -> 8 fragments, vanilla 4 ->
 // 64); the per-layer cap replaces vanilla's 4000. Ocean profiling later
 // showed that a saturated particle workload can keep effects around 3-4 ms/tick
-// and push the GS queue above 80% even after chunk rebuilding has stopped. 128
+// and push the GS queue above 80% even after chunk rebuilding has stopped. 64
 // keeps a visible burst while bounding both update work and particle draw cost.
 #define PS2_FAST_PARTICLE_PHYSICS 1
 #define PS2_PARTICLE_BRIGHTNESS_INTERVAL 4
 #define PS2_BLOCK_DESTROY_PARTICLE_GRID 2
-#define PS2_MAX_PARTICLES_PER_LAYER 128
+#define PS2_MAX_PARTICLES_PER_LAYER 64
 // Bound ground-impact particles separately from the weather curtains and sound.
 // Two attempts per tick (~40/second at 20 TPS) limit allocation and overdraw;
 // ambience still samples nearby surfaces when splashes/particles are disabled.

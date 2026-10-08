@@ -76,7 +76,7 @@ void platformGameSettingsResetControlBindings(GameSettings& settings)
 }
 
 int_t platformGameSettingsDefaultChunkUpdates() { return (int_t)PLATFORM_MAX_RENDERER_UPDATES_PER_FRAME; }
-int_t platformGameSettingsDefaultConnectedTextures() { return 3; }
+int_t platformGameSettingsDefaultConnectedTextures() { return 0; }
 int_t platformGameSettingsCycleRenderDistance(int_t, int_t) { return PLATFORM_DEFAULT_RENDER_DISTANCE; }
 int_t platformGameSettingsClampRenderDistance(int_t) { return PLATFORM_DEFAULT_RENDER_DISTANCE; }
 int_t platformGameSettingsClampFineRenderDistance(int_t value)
