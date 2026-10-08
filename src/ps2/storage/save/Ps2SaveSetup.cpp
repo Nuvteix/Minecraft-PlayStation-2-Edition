@@ -1,4 +1,5 @@
 #ifdef PS2_PLATFORM
+#include "ps2/boot/SavesPromptPS2.h"
 #include "ps2/storage/save/Ps2SaveSetup.h"
 #include "ps2/storage/save/Ps2MemoryCard.h"
 #include "ps2/storage/save/Ps2SaveStorage.h"
@@ -10,9 +11,15 @@ namespace Ps2SaveSetup
 {
 void selectStorage()
 {
-    // Never prompt, format a card, or redirect configuration onto USB.
     const bool ready = Ps2MemoryCard::initialize();
-    Ps2SaveStorage::setTarget(Ps2SaveStorage::Target::MemoryCard);
+    const SaveLocation selected = ps2_show_saves_prompt();
+    Ps2SaveStorage::Target target = Ps2SaveStorage::Target::Disabled;
+    if (selected == SAVE_LOC_MC && ready)
+        target = Ps2SaveStorage::Target::MemoryCard;
+    else if (selected == SAVE_LOC_MASS && Ps2SaveStorage::available(Ps2SaveStorage::Target::MassStorage))
+        target = Ps2SaveStorage::Target::MassStorage;
+
+    Ps2SaveStorage::setTarget(target);
     Ps2SaveStorage::reportConfigurationSave(ready);
     if (!ready)
     {
