@@ -137,8 +137,8 @@ unsigned short updateMenuAnalogNavigation(const Ps2PadSnapshot& pad, float dt, b
     return menuAnalogDirectionMask(s_menuAnalogDirection);
 }
 
-// Buttons a Controls-menu binding can learn. Start/Select are deliberately
-// left out -- see Ps2PadKeyCodes.h.
+// Buttons a Controls-menu binding can learn. Start remains reserved; Select
+// is captured as the existing KEY_T input used by Chat.
 const struct { unsigned mask; int code; } kRemappableButtons[] = {
     { PAD_CROSS, PS2_KEY_CROSS },       { PAD_CIRCLE, PS2_KEY_CIRCLE },
     { PAD_TRIANGLE, PS2_KEY_TRIANGLE }, { PAD_SQUARE, PS2_KEY_SQUARE },
@@ -147,6 +147,7 @@ const struct { unsigned mask; int code; } kRemappableButtons[] = {
     { PAD_L3, PS2_KEY_L3 },             { PAD_R3, PS2_KEY_R3 },
     { PAD_UP, PS2_KEY_DPAD_UP },        { PAD_DOWN, PS2_KEY_DPAD_DOWN },
     { PAD_LEFT, PS2_KEY_DPAD_LEFT },    { PAD_RIGHT, PS2_KEY_DPAD_RIGHT },
+    { PAD_SELECT, lwjgl::Keyboard::KEY_T },
 };
 
 void updateMenu(const Ps2PadSnapshot& primary, bool specializedMenuNavigation) {
@@ -170,6 +171,7 @@ void updateMenu(const Ps2PadSnapshot& primary, bool specializedMenuNavigation) {
                 break;
             }
         }
+        ps2PadClearLatchedPressed(menuPadPort());
         return;
     }
     const float dt = Ps2Pointer::beginMenuFrame();

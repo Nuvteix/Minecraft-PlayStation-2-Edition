@@ -13,9 +13,8 @@
 // just see an int they don't recognize as a "real" key and Keyboard_ps2's
 // getKeyName()/Ps2InputMapper treat it specially.
 //
-// Only the 14 buttons that have no fixed system role are exposed here.
-// Start (pause) and Select (debug overlay) stay reserved so a rebind can't
-// take them away from the player.
+// Only the 14 remappable physical buttons get synthetic codes. Start remains
+// reserved; Select keeps using KEY_T so it can remain the default Chat input.
 enum Ps2PadKeyCode : int
 {
 	PS2_KEY_CROSS = lwjgl::Keyboard::KEY_MAX,

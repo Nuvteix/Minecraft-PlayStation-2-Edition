@@ -47,6 +47,7 @@ bool bindableControllerKey(int_t key)
 #if PLATFORM_PS2
     switch (key)
     {
+    case lwjgl::Keyboard::KEY_T:
     case PS2_KEY_CROSS:
     case PS2_KEY_CIRCLE:
     case PS2_KEY_TRIANGLE:
