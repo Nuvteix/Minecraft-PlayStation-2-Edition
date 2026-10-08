@@ -53,4 +53,5 @@ private:
     GuiButton *resetButton;
     GuiButton *backButton;
     int_t captureBindingIndex;
+    bool suppressTriangleUnbind;
 };

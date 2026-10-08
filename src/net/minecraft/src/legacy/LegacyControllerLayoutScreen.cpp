@@ -85,7 +85,7 @@ void drawPanelTitle(FontRenderer *font, const std::string &text, int_t centerX, 
 LegacyControllerLayoutScreen::LegacyControllerLayoutScreen(GuiScreen *parent, GameSettings *settings,
     LegacyOptionsBackgroundMode backgroundMode)
     : LegacyOptionsScreen(parent, settings, backgroundMode),
-            resetButton(nullptr), backButton(nullptr), captureBindingIndex(-1)
+            resetButton(nullptr), backButton(nullptr), captureBindingIndex(-1), suppressTriangleUnbind(false)
 {
 }
 
@@ -94,6 +94,7 @@ void LegacyControllerLayoutScreen::initGui()
     clearControlList();
     actionSlots.clear();
     captureBindingIndex = -1;
+    suppressTriangleUnbind = false;
     platformSetPadRebindExclusive(false);
     configureLegacyLayout(10, true, LegacyOptionsLayoutPreset::Wide);
 
@@ -472,6 +473,7 @@ void LegacyControllerLayoutScreen::applyCapturedKey(int_t keyCode)
     if (captureBindingIndex < 0 || !bindableControllerKey(keyCode))
         return;
 
+    suppressTriangleUnbind = keyCode == PS2_KEY_TRIANGLE;
     assignActionToCode(keyCode, captureBindingIndex);
     captureBindingIndex = -1;
     platformSetPadRebindExclusive(false);
@@ -614,7 +616,12 @@ void LegacyControllerLayoutScreen::updateScreen()
 
 #if PLATFORM_PS2
     const Ps2PadSnapshot &padSnapshot = ps2PadGetSnapshot(platformMenuPad());
-    if ((padSnapshot.pressed & PS2_PAD_TRIANGLE) != 0 && selectedControlIndex >= 0 &&
+    if (suppressTriangleUnbind)
+    {
+        if ((padSnapshot.held & PS2_PAD_TRIANGLE) == 0)
+            suppressTriangleUnbind = false;
+    }
+    else if ((padSnapshot.pressed & PS2_PAD_TRIANGLE) != 0 && selectedControlIndex >= 0 &&
         selectedControlIndex < static_cast<int_t>(actionSlots.size()))
     {
         unbindSelectedAction();

@@ -53,7 +53,7 @@ static void sp_button_draw(const Ps2BootRenderer::Texture& texture,
     const float halfWidth = width * 0.5f;
     const float rightSourceX = 200.0f - halfWidth;
     const float v0 = static_cast<float>(46 + (selected ? 2 : 1) * 20);
-    const Ps2BootRenderer::Color white = {255, 255, 255, 0x80};
+    const Ps2BootRenderer::Color white = {168, 168, 168, 0x80};
     Ps2BootRenderer::drawTexture(texture, x, y, 0.0f, v0,
         x + halfWidth, y + height, halfWidth, v0 + 20.0f, z, white);
     Ps2BootRenderer::drawTexture(texture, x + halfWidth, y, rightSourceX, v0,
@@ -138,10 +138,10 @@ SaveLocation ps2_show_saves_prompt() {
     const Ps2BootRenderer::Color C_LGRAY   = {146, 152, 166, 0x80};
     const Ps2BootRenderer::Color C_HOVER  = {255, 255, 160, 0x80};
 
-    const float titleScale = 2.0f;
-    const float subScale = 1.3f;
-    const float labelScale = 1.8f;
-    const float hintScale = 1.0f;
+    const float titleScale = 1.8f;
+    const float subScale = 1.2f;
+    const float labelScale = 1.5f;
+    const float hintScale = 1.4f;
     const float CS = has_font ? (float)font.cell : 8.0f;
     const float cx = W * 0.5f;
 
@@ -171,7 +171,7 @@ SaveLocation ps2_show_saves_prompt() {
         ++frame;
 
         if (has_font) {
-            sp_str_cx(font, cx, H * 0.20f, Z, "SAVE LOCATION", titleScale, C_WHITE);
+            sp_str_cx(font, cx, H * 0.20f, Z, "Save Location", titleScale, C_WHITE);
             sp_str_cx(font, cx, H * 0.20f + CS * titleScale + 8.0f, Z,
                       "Choose where to save your worlds", subScale, C_LGRAY);
             if (!has_mass)
@@ -179,7 +179,7 @@ SaveLocation ps2_show_saves_prompt() {
                           Z, "USB DRIVE NOT DETECTED", hintScale, C_LGRAY);
         }
 
-        const char* labels[3] = {"MEMORY CARD", "USB DRIVE", "DON'T SAVE"};
+        const char* labels[3] = {"Memory Card", "USB Drive", "Don't Save"};
         for (int option = 0; option < BTN_COUNT; ++option)
         {
             const float y = buttonY + option * (buttonH + buttonGap);
@@ -195,7 +195,7 @@ SaveLocation ps2_show_saves_prompt() {
 
         if (has_font)
         {
-            const char* hint = "LEFT/RIGHT CHOOSE   X SELECT   START SKIP";
+            const char* hint = "Left/Right: Choose   X: Select   Start: Skip";
             const float fittedHintScale = sp_fit_scale(font, hint, hintScale, W - 24.0f);
             sp_str_cx(font, cx, H - CS * fittedHintScale - 18.0f, Z, hint, fittedHintScale, C_WHITE);
         }

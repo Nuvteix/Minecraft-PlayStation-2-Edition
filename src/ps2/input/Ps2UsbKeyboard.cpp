@@ -42,15 +42,28 @@ bool initialize()
         return s_ready;
     s_initialized = true;
 
-    const int usbHost = Ps2Iop::loadModule("rom0:USBD");
-    if (usbHost < 0)
+    int initResult = PS2KbdInit();
+    int usbHost = -1;
+    int keyboardDriver = -1;
+    if (initResult <= 0)
     {
-        const int fallback = Ps2IrxLoader::load("irx/usbd.irx");
-        MC_LOG_INFO("input", "[PS2] USB host module: rom=%d packaged=%d\n", usbHost, fallback);
+        usbHost = Ps2Iop::loadModule("rom0:USBD");
+        keyboardDriver = Ps2IrxLoader::load("irx/ps2kbd.irx");
+        initResult = PS2KbdInit();
     }
 
-    const int keyboardDriver = Ps2IrxLoader::load("irx/ps2kbd.irx");
-    const int initResult = PS2KbdInit();
+    if (initResult <= 0)
+    {
+        const int fallbackHost = Ps2IrxLoader::load("irx/usbd.irx");
+        if (fallbackHost >= 0)
+        {
+            keyboardDriver = Ps2IrxLoader::load("irx/ps2kbd.irx");
+            initResult = PS2KbdInit();
+        }
+        MC_LOG_ERROR("input", "[PS2] USB keyboard retry: rom-usbd=%d fallback-usbd=%d driver=%d init=%d\n",
+                     usbHost, fallbackHost, keyboardDriver, initResult);
+    }
+
     s_ready = initResult > 0;
     if (s_ready)
     {
@@ -60,7 +73,7 @@ bool initialize()
     }
     else
     {
-        MC_LOG_INFO("input", "[PS2] USB keyboard unavailable (driver=%d init=%d)\n",
+        MC_LOG_ERROR("input", "[PS2] USB keyboard unavailable (driver=%d init=%d)\n",
                     keyboardDriver, initResult);
     }
     return s_ready;
