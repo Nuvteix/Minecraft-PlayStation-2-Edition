@@ -95,6 +95,9 @@ public:
 	KeyBinding *keyBindChat;
 	KeyBinding *keyBindPlayerList;
 	KeyBinding *keyBindDebug;
+	KeyBinding *keyBindCycleItemLeft;
+	KeyBinding *keyBindCycleItemRight;
+	KeyBinding *keyBindTogglePerspective;
 	KeyBinding *keyBindPickBlock;
 	KeyBinding *keyBindToggleFog;
 	KeyBinding *keyBindSneak;

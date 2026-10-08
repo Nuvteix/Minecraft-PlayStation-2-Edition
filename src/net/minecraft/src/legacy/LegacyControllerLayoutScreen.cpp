@@ -147,6 +147,9 @@ void LegacyControllerLayoutScreen::initGui()
     appendBinding(settings->keyBindChat);
     appendBinding(settings->keyBindPlayerList);
     appendBinding(settings->keyBindDebug);
+    appendBinding(settings->keyBindCycleItemLeft);
+    appendBinding(settings->keyBindCycleItemRight);
+    appendBinding(settings->keyBindTogglePerspective);
 
     const int_t leftCount = (static_cast<int_t>(bindings.size()) + 1) / 2;
     for (int_t i = 0; i < static_cast<int_t>(bindings.size()); ++i)

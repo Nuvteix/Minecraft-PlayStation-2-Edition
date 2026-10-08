@@ -2046,7 +2046,8 @@ void Minecraft::runTick()
                 else
                     gameSettings->showDebugInfo = !gameSettings->showDebugInfo;
             }
-            if (eventKey == lwjgl::Keyboard::KEY_F5)
+            if (gameSettings->keyBindTogglePerspective->keyCode != 0 &&
+                eventKey == gameSettings->keyBindTogglePerspective->keyCode)
             {
                 if (!isSplitScreenActive())
                 {
@@ -2055,6 +2056,12 @@ void Minecraft::runTick()
                         gameSettings->thirdPersonView = 0;
                 }
             }
+            if (gameSettings->keyBindCycleItemLeft->keyCode != 0 &&
+                eventKey == gameSettings->keyBindCycleItemLeft->keyCode)
+                thePlayer->inventory->changeCurrentItem(1);
+            if (gameSettings->keyBindCycleItemRight->keyCode != 0 &&
+                eventKey == gameSettings->keyBindCycleItemRight->keyCode)
+                thePlayer->inventory->changeCurrentItem(-1);
             if (eventKey == lwjgl::Keyboard::KEY_F8)
                 gameSettings->smoothCamera = !gameSettings->smoothCamera;
 
