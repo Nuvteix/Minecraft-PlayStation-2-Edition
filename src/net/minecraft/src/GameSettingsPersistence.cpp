@@ -228,7 +228,8 @@ void GameSettings::loadOptions()
 				{
 					const bool oldItemLeftKey = keyBindings[i] == keyBindCycleItemLeft && key == "key_Cycle Item Left";
 					const bool oldItemRightKey = keyBindings[i] == keyBindCycleItemRight && key == "key_Cycle Item Right";
-					if (key == "key_" + keyBindings[i]->keyDescription || oldItemLeftKey || oldItemRightKey)
+					const bool oldDebugMenuKey = keyBindings[i] == keyBindDebug && key == "key_Debug Info";
+					if (key == "key_" + keyBindings[i]->keyDescription || oldItemLeftKey || oldItemRightKey || oldDebugMenuKey)
 					{
 						keyBindings[i]->keyCode = parseIntJava(value);
 #ifdef PS2_PLATFORM
@@ -472,6 +473,7 @@ void GameSettings::saveOptions()
 		knownKeys.insert("key_" + binding->keyDescription);
 	knownKeys.insert("key_Cycle Item Left");
 	knownKeys.insert("key_Cycle Item Right");
+	knownKeys.insert("key_Debug Info");
 
 	std::vector<std::string> preservedLines;
 	std::vector<unsigned char> existingBytes;
