@@ -126,8 +126,8 @@ void GameSettings::setDefaults()
 	keyBindChat = new KeyBinding("key.chat", 20);
 	keyBindPlayerList = new KeyBinding("key.playerlist", 15);
 	keyBindDebug = new KeyBinding("Debug Info", lwjgl::Keyboard::KEY_F3);
-	keyBindCycleItemLeft = new KeyBinding("Cycle Item Left", lwjgl::Keyboard::KEY_COMMA);
-	keyBindCycleItemRight = new KeyBinding("Cycle Item Right", lwjgl::Keyboard::KEY_PERIOD);
+	keyBindCycleItemLeft = new KeyBinding("Item Left", lwjgl::Keyboard::KEY_COMMA);
+	keyBindCycleItemRight = new KeyBinding("Item Right", lwjgl::Keyboard::KEY_PERIOD);
 	keyBindTogglePerspective = new KeyBinding("Toggle Perspective", lwjgl::Keyboard::KEY_F5);
 	keyBindPickBlock = new KeyBinding("key.pickItem", -98);
 	keyBindToggleFog = new KeyBinding("key.fog", 33);

@@ -46,6 +46,7 @@ void setKey(int key, bool down) {
 void releaseGameplayKeys() {
     setKey(PS2_KEY_DPAD_UP, false);   setKey(PS2_KEY_DPAD_DOWN, false);
     setKey(PS2_KEY_DPAD_LEFT, false); setKey(PS2_KEY_DPAD_RIGHT, false);
+    setKey(PS2_KEY_SELECT, false);
     setKey(PS2_KEY_CROSS, false);     setKey(PS2_KEY_CIRCLE, false);
     setKey(PS2_KEY_TRIANGLE, false);  setKey(PS2_KEY_SQUARE, false);
     setKey(PS2_KEY_L1, false);        setKey(PS2_KEY_R1, false);
@@ -137,8 +138,7 @@ unsigned short updateMenuAnalogNavigation(const Ps2PadSnapshot& pad, float dt, b
     return menuAnalogDirectionMask(s_menuAnalogDirection);
 }
 
-// Buttons a Controls-menu binding can learn. Start remains reserved; Select
-// is captured as the existing KEY_T input used by Chat.
+// Buttons a Controls-menu binding can learn. Start remains reserved.
 const struct { unsigned mask; int code; } kRemappableButtons[] = {
     { PAD_CROSS, PS2_KEY_CROSS },       { PAD_CIRCLE, PS2_KEY_CIRCLE },
     { PAD_TRIANGLE, PS2_KEY_TRIANGLE }, { PAD_SQUARE, PS2_KEY_SQUARE },
@@ -147,7 +147,7 @@ const struct { unsigned mask; int code; } kRemappableButtons[] = {
     { PAD_L3, PS2_KEY_L3 },             { PAD_R3, PS2_KEY_R3 },
     { PAD_UP, PS2_KEY_DPAD_UP },        { PAD_DOWN, PS2_KEY_DPAD_DOWN },
     { PAD_LEFT, PS2_KEY_DPAD_LEFT },    { PAD_RIGHT, PS2_KEY_DPAD_RIGHT },
-    { PAD_SELECT, lwjgl::Keyboard::KEY_T },
+    { PAD_SELECT, PS2_KEY_SELECT },
 };
 
 void updateMenu(const Ps2PadSnapshot& primary, bool specializedMenuNavigation) {
@@ -253,8 +253,6 @@ void updateMenu(const Ps2PadSnapshot& primary, bool specializedMenuNavigation) {
         if (p.pressed & PAD_START) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_RETURN, true);
         if (p.released & PAD_START) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_RETURN, false);
     }
-    if (p.pressed & PAD_SELECT) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_T, true);
-    if (p.released & PAD_SELECT) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_T, false);
 }
 
 void updateGameplay(const Ps2PadSnapshot& p) {
@@ -296,6 +294,7 @@ void updateGameplay(const Ps2PadSnapshot& p) {
     setKey(PS2_KEY_R2, (p.held & PAD_R2) != 0);
     setKey(PS2_KEY_L3, (p.held & PAD_L3) != 0);
     setKey(PS2_KEY_R3, (p.held & PAD_R3) != 0);
+    setKey(PS2_KEY_SELECT, (p.held & PAD_SELECT) != 0);
 
     if (p.pressed & PAD_R2) lwjgl::Mouse::detail::pushButton(0, true, 0, 0);
     if (p.released & PAD_R2) lwjgl::Mouse::detail::pushButton(0, false, 0, 0);
@@ -304,9 +303,6 @@ void updateGameplay(const Ps2PadSnapshot& p) {
     if (p.pressed & PAD_START) { ps2SetMenuPad(0); ps2SetMenuOwnerPad(0); lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_ESCAPE, true); }
     if (p.released & PAD_START) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_ESCAPE, false);
     if (p.pressed & (PAD_SQUARE | PAD_TRIANGLE)) ps2SetMenuPad(0);
-    if (p.pressed & PAD_SELECT) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_T, true);
-    if (p.released & PAD_SELECT) lwjgl::Keyboard::detail::pushKey(lwjgl::Keyboard::KEY_T, false);
-
     // Gameplay does not use text/menu latches. Clear them so they do not leak into menus.
     ps2PadClearLatchedPressed(0);
 }

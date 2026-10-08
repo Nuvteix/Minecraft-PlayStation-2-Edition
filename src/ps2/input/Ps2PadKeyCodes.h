@@ -13,8 +13,7 @@
 // just see an int they don't recognize as a "real" key and Keyboard_ps2's
 // getKeyName()/Ps2InputMapper treat it specially.
 //
-// Only the 14 remappable physical buttons get synthetic codes. Start remains
-// reserved; Select keeps using KEY_T so it can remain the default Chat input.
+// Remappable physical buttons get synthetic codes; Start remains reserved.
 enum Ps2PadKeyCode : int
 {
 	PS2_KEY_CROSS = lwjgl::Keyboard::KEY_MAX,
@@ -31,6 +30,7 @@ enum Ps2PadKeyCode : int
 	PS2_KEY_DPAD_DOWN,
 	PS2_KEY_DPAD_LEFT,
 	PS2_KEY_DPAD_RIGHT,
+	PS2_KEY_SELECT,
 	PS2_KEY_SENTINEL_END
 };
 

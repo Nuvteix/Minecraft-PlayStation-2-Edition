@@ -226,7 +226,9 @@ void GameSettings::loadOptions()
 					splitscreenVertical = (value == "true");
 				for (int_t i = 0; i < (int_t)keyBindings.size(); i++)
 				{
-					if (key == "key_" + keyBindings[i]->keyDescription)
+					const bool oldItemLeftKey = keyBindings[i] == keyBindCycleItemLeft && key == "key_Cycle Item Left";
+					const bool oldItemRightKey = keyBindings[i] == keyBindCycleItemRight && key == "key_Cycle Item Right";
+					if (key == "key_" + keyBindings[i]->keyDescription || oldItemLeftKey || oldItemRightKey)
 					{
 						keyBindings[i]->keyCode = parseIntJava(value);
 #ifdef PS2_PLATFORM
@@ -468,6 +470,8 @@ void GameSettings::saveOptions()
 	platformGameSettingsAddKnownKeys(knownKeys);
 	for (KeyBinding *binding : keyBindings)
 		knownKeys.insert("key_" + binding->keyDescription);
+	knownKeys.insert("key_Cycle Item Left");
+	knownKeys.insert("key_Cycle Item Right");
 
 	std::vector<std::string> preservedLines;
 	std::vector<unsigned char> existingBytes;

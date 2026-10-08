@@ -48,7 +48,6 @@ bool bindableControllerKey(int_t key)
 #if PLATFORM_PS2
     switch (key)
     {
-    case lwjgl::Keyboard::KEY_T:
     case PS2_KEY_CROSS:
     case PS2_KEY_CIRCLE:
     case PS2_KEY_TRIANGLE:
@@ -63,6 +62,7 @@ bool bindableControllerKey(int_t key)
     case PS2_KEY_DPAD_DOWN:
     case PS2_KEY_DPAD_LEFT:
     case PS2_KEY_DPAD_RIGHT:
+    case PS2_KEY_SELECT:
         return true;
     default:
         break;
@@ -246,10 +246,7 @@ void LegacyControllerLayoutScreen::refreshLabels()
             ? uiText("Unbound")
             : settings->getKeyDisplayString(keyCode);
 #if PLATFORM_PS2
-        if (settings->keyBindings[slot.bindingIndex] == settings->keyBindChat &&
-            keyCode == lwjgl::Keyboard::KEY_T)
-            buttonName = "Select";
-        else if (const char *padName = ps2PadKeyName(keyCode))
+        if (const char *padName = ps2PadKeyName(keyCode))
             buttonName = padName;
 #endif
         std::string label = settings->getKeyBindingDescription(slot.bindingIndex) + ": " + buttonName;
