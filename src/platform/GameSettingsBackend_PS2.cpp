@@ -38,10 +38,10 @@ void platformGameSettingsApplyLegacyCrafting(GameSettings& settings)
 
 void platformGameSettingsInitialize(GameSettings& settings)
 {
-	settings.keyBindForward->keyCode = PS2_KEY_DPAD_UP;
-	settings.keyBindLeft->keyCode = PS2_KEY_DPAD_LEFT;
-	settings.keyBindBack->keyCode = PS2_KEY_DPAD_DOWN;
-	settings.keyBindRight->keyCode = PS2_KEY_DPAD_RIGHT;
+	settings.keyBindForward->keyCode = 0;
+	settings.keyBindLeft->keyCode = 0;
+	settings.keyBindBack->keyCode = 0;
+	settings.keyBindRight->keyCode = 0;
 	settings.keyBindJump->keyCode = PS2_KEY_CROSS;
 	settings.keyBindSneak->keyCode = PS2_KEY_L3;
 	settings.keyBindSprint->keyCode = 0;
@@ -56,10 +56,10 @@ void platformGameSettingsInitialize(GameSettings& settings)
 
 void platformGameSettingsResetControlBindings(GameSettings& settings)
 {
-	settings.keyBindForward->keyCode = PS2_KEY_DPAD_UP;
-	settings.keyBindLeft->keyCode = PS2_KEY_DPAD_LEFT;
-	settings.keyBindBack->keyCode = PS2_KEY_DPAD_DOWN;
-	settings.keyBindRight->keyCode = PS2_KEY_DPAD_RIGHT;
+	settings.keyBindForward->keyCode = 0;
+	settings.keyBindLeft->keyCode = 0;
+	settings.keyBindBack->keyCode = 0;
+	settings.keyBindRight->keyCode = 0;
 	settings.keyBindJump->keyCode = PS2_KEY_CROSS;
 	settings.keyBindSneak->keyCode = PS2_KEY_L3;
 	settings.keyBindSprint->keyCode = 0;
