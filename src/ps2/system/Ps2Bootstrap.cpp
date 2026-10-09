@@ -4,13 +4,13 @@
 #include "ps2/system/Ps2Bootstrap.h"
 
 #include "ps2/boot/Ps2BootScreen.h"
-#include "ps2/boot/Ps2BootRenderer.h"
 #include "ps2/boot/Ps2BootText.h"
 #include "ps2/input/Ps2Input.h"
 #include "ps2/input/Ps2UsbKeyboard.h"
 #include "ps2/render/Ps2Graphics.h"
 #include "ps2/storage/Ps2Storage.h"
 #include "ps2/storage/assets/Ps2Assets.h"
+#include "ps2/storage/assets/Ps2AssetLocator.h"
 #include "ps2/storage/save/Ps2SaveSetup.h"
 #include "ps2/system/Ps2EarlyCrash.h"
 #include "ps2/system/Ps2Iop.h"
@@ -25,24 +25,28 @@
 
 extern "C" void ps2_dbg_init_memory();
 
+namespace Ps2Bootstrap
+{
+
 namespace
 {
 
-void showBootstrapStatus(const char* status)
+void displayBootstrapStatus(const char* message)
 {
-    Ps2BootRenderer::setAlphaBlend(false);
-    Ps2BootRenderer::clear({0x00, 0x00, 0x00, 0x80});
-    Ps2BootText::drawCentered(
-        static_cast<float>(Ps2BootRenderer::width()) * 0.5f,
-        static_cast<float>(Ps2BootRenderer::height()) * 0.5f,
-        0xFFFF, status, 2.0f, {0xE8, 0xE8, 0xE8, 0x80});
-    Ps2BootRenderer::present();
+    // Display status on-screen at the bottom
+    const int screenHeight = Ps2Graphics::height();
+    const int y = screenHeight - 40;
+    Ps2BootText::draw(20, y, 100, message, 1.0f, Ps2BootRenderer::Color(255, 255, 255));
+    
+    // Flush and display
+    auto* graphics = Ps2Graphics::context();
+    if (graphics)
+    {
+        gsKit_queue_exec(graphics);
+        gsKit_sync_flip(graphics);
+        gsKit_queue_reset(graphics->Os_Queue);
+    }
 }
-
-} // namespace
-
-namespace Ps2Bootstrap
-{
 
 bool initialize(int argc, char** argv)
 {
@@ -63,22 +67,18 @@ bool initialize(int argc, char** argv)
     MC_LOG_INFO("platform", "[PS2] main() reached\n");
 
     Ps2Graphics::initialize();
-    showBootstrapStatus("GRAPHICS READY");
     MC_LOG_DEBUG("ps2.boot", "[PS2] bootstrap: graphics and VU ready\n");
     MC_LOG_INFO("platform", "[PS2] graphics OK - %dx%d\n", Ps2Graphics::width(), Ps2Graphics::height());
 
-    showBootstrapStatus("STARTING IOP STORAGE");
     Ps2Iop::initFileServices();
-    showBootstrapStatus("IOP STORAGE READY");
     MC_LOG_DEBUG("ps2.boot", "[PS2] bootstrap: IOP file services ready\n");
 
-    showBootstrapStatus("STARTING CONTROLLER");
     Ps2Input::initialize();
     Ps2Input::waitUntilReady();
-    showBootstrapStatus("CONTROLLER READY");
     MC_LOG_DEBUG("ps2.boot", "[PS2] pad init done\n");
 
-    showBootstrapStatus("SEARCHING GAME DATA");
+    displayBootstrapStatus("SEARCHING GAME DATA");
+    Ps2AssetLocator::setProgressCallback(&displayBootstrapStatus);
     Ps2Assets::init(argc, argv);
     if (!Ps2Assets::available())
     {
@@ -116,6 +116,8 @@ bool initialize(int argc, char** argv)
     Ps2SaveSetup::selectStorage();
     return true;
 }
+
+} // namespace
 
 [[noreturn]] void finishGame()
 {

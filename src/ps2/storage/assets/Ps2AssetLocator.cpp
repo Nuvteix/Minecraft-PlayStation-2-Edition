@@ -55,6 +55,7 @@ struct LocatorState
     std::vector<Candidate> preferred;
     std::vector<Candidate> fallbacks;
     Ps2AssetLocator::Result result;
+    Ps2AssetLocator::ProgressCallback progressCallback = nullptr;
 };
 
 LocatorState& state()
@@ -95,6 +96,12 @@ std::string canonicalCandidateKey(const Candidate& candidate)
 bool sameCandidate(const Candidate& left, const Candidate& right)
 {
     return canonicalCandidateKey(left) == canonicalCandidateKey(right);
+}
+
+void reportProgress(const char* message)
+{
+    if (state().progressCallback)
+        state().progressCallback(message);
 }
 
 void addCandidate(std::vector<Candidate>& candidates,
@@ -286,6 +293,11 @@ bool candidateHasPak(const Candidate& candidate)
             return false;
         installRoot = candidate.dataRoot.substr(0, colon + 1);
     }
+    
+    static char progressBuf[256];
+    snprintf(progressBuf, sizeof(progressBuf), "CHECKING PAK: %s", installRoot.c_str());
+    reportProgress(progressBuf);
+    
     if (isDiscPath(candidate.dataRoot, candidate.source))
     {
         const std::string pakPath = resolveDiscFile(PlatformStorage::join(installRoot, PAK_NAME));
@@ -334,6 +346,10 @@ bool selectFrom(const std::vector<Candidate>& candidates)
 {
     for (const Candidate& candidate : candidates)
     {
+        static char progressBuf[256];
+        snprintf(progressBuf, sizeof(progressBuf), "PROBING: %s", candidate.dataRoot.c_str());
+        reportProgress(progressBuf);
+        
         if (resolveCandidateFile(candidate, PROBE_KEY).empty() && !candidateHasPak(candidate))
             continue;
 
@@ -553,33 +569,25 @@ bool resolve(Result& out)
         return false;
     }
 
-    // Prefer the ELF's own directory first, then mounted mass storage. Some
-    // launchers leave CD/DVD or HDD filesystem drivers in a state where even
-    // a failed probe can block, so do not walk every legacy fallback before
-    // checking the device the game was launched from.
-    if (selectFrom(state().preferred))
-    {
-        out = state().result;
-        return true;
-    }
-
-    std::string massRoot;
-    if (!state().launchedFromDisc && probeUsbWithRetry(massRoot))
-    {
-        out = state().result;
-        return true;
-    }
-
     if (probeStaticCandidates())
     {
         out = state().result;
         return true;
     }
 
-    if (!state().launchedFromDisc && probeScanRoots(massRoot))
+    if (!state().launchedFromDisc)
     {
-        out = state().result;
-        return true;
+        std::string massRoot;
+        if (probeUsbWithRetry(massRoot))
+        {
+            out = state().result;
+            return true;
+        }
+        if (probeScanRoots(massRoot))
+        {
+            out = state().result;
+            return true;
+        }
     }
 
     printMissingData();
@@ -639,6 +647,17 @@ void addDiagnostic(const std::string& msg)
 {
     if (s_diagnosticLogs.size() < 20)
         s_diagnosticLogs.push_back(msg);
+}
+
+void setProgressCallback(ProgressCallback callback)
+{
+    state().progressCallback = callback;
+}
+
+void reportProgress(const char* message)
+{
+    if (state().progressCallback)
+        state().progressCallback(message);
 }
 
 } // namespace Ps2AssetLocator

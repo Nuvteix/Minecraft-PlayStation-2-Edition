@@ -130,6 +130,7 @@ bool loadMx4sioModules()
     return false;
 }
 #endif
+}
 
 const char* romModulePath(Ps2Iop::RomModule module)
 {
