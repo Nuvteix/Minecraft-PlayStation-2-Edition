@@ -21,6 +21,7 @@ extern "C" {
 int ps2ipc_ps2ip_getconfig(char *netif_name, t_ip_info *ip_info);
 #else
 #include <ps2ip.h>
+#include <netman.h>
 extern unsigned char ps2dev9_irx[];
 extern unsigned int size_ps2dev9_irx;
 extern unsigned char netman_irx[];
@@ -38,6 +39,7 @@ namespace
 PlatformMutex s_initMutex;
 std::atomic_bool s_ready{false};
 bool s_stackInitialized = false;
+bool s_dhcpStarted = false;
 std::uint32_t s_localAddressNetworkOrder = 0;
 
 #if defined(PS2_ENABLE_NETWORK) && !defined(PS2_REMOTE_DEBUG)
@@ -65,7 +67,7 @@ bool loadNetworkModules()
 }
 #endif
 
-bool startStackAndDhcp()
+bool startNetworkStack()
 {
 #ifdef NO_NETWORK
     return false;
@@ -147,21 +149,8 @@ bool startStackAndDhcp()
         return false;
     }
 
-    MC_LOG_INFO("network", "[PS2] sm0 registered, enabling DHCP\n");
-    McLog::flush();
-    info.dhcp_enabled = 1;
-    if (!ps2ip_setconfig(&info))
-    {
-        MC_LOG_ERROR("network", "[PS2] failed to enable DHCP on sm0\n");
-        ps2ipDeinit();
-        return false;
-    }
-
-    // Keep the stack resident even if the first DHCP wait times out. DHCP can
-    // finish later (for example after a cable is connected), and the next
-    // connection attempt can then succeed without reinitializing lwIP.
     s_stackInitialized = true;
-    MC_LOG_INFO("network", "[PS2] DHCP client started\n");
+    MC_LOG_INFO("network", "[PS2] sm0 registered\n");
     McLog::flush();
     return true;
 #else
@@ -169,6 +158,60 @@ bool startStackAndDhcp()
 #endif
 #endif
 }
+
+#if defined(PS2_ENABLE_NETWORK) && !defined(PS2_REMOTE_DEBUG)
+bool waitForEthernetLink()
+{
+    constexpr int kLinkWaitAttempts = 10;
+    for (int attempt = 0; attempt < kLinkWaitAttempts; ++attempt)
+    {
+        if (NetManIoctl(NETMAN_NETIF_IOCTL_GET_LINK_STATUS, nullptr, 0, nullptr, 0) ==
+            NETMAN_NETIF_ETH_LINK_STATE_UP)
+        {
+            MC_LOG_INFO("network", "[PS2] Ethernet link is up\n");
+            return true;
+        }
+
+        if (attempt + 1 < kLinkWaitAttempts)
+            DelayThread(1000000);
+    }
+
+    MC_LOG_ERROR("network", "[PS2] Ethernet link did not come up; check the cable and adapter\n");
+    return false;
+}
+
+bool startDhcp()
+{
+    if (s_dhcpStarted)
+        return true;
+
+    t_ip_info info{};
+    if (!ps2ip_getconfig(const_cast<char *>("sm0"), &info))
+    {
+        MC_LOG_ERROR("network", "[PS2] cannot configure DHCP: sm0 is unavailable\n");
+        return false;
+    }
+
+    info.dhcp_enabled = 1;
+    if (!ps2ip_setconfig(&info))
+    {
+        MC_LOG_ERROR("network", "[PS2] failed to enable DHCP on sm0\n");
+        return false;
+    }
+
+    s_dhcpStarted = true;
+    MC_LOG_INFO("network", "[PS2] DHCP client started after Ethernet link became active\n");
+    return true;
+}
+
+bool hasDhcpLease()
+{
+    t_ip_info info{};
+    if (!ps2ip_getconfig(const_cast<char *>("sm0"), &info))
+        return false;
+    return info.dhcp_enabled && info.dhcp_status == DHCP_STATE_BOUND;
+}
+#endif
 }
 
 namespace Ps2Network
@@ -188,16 +231,24 @@ bool initialize()
     McLog::flush();
     if (s_ready.load(std::memory_order_relaxed))
         return true;
-    if (!startStackAndDhcp())
+    if (!startNetworkStack())
         return false;
 
 #ifndef PS2_REMOTE_DEBUG
-    // Leave DHCP alone while lwIP negotiates the lease. Repeated EE-side
-    // ps2ip_getconfig()/NETMAN RPCs during this window have caused intermittent
-    // IOP stalls on real hardware, including loss of PAD input. The network
-    // workers can safely wait here without blocking the render/input thread.
+    // Wait for PHY auto-negotiation before starting DHCP; otherwise the first
+    // client can send its DHCP discovery while SMAP still reports no carrier.
+    if (!waitForEthernetLink() || !startDhcp())
+        return false;
+
+    // Keep the DHCP wait in the network worker. Sample status once afterward
+    // rather than issuing repeated EE-to-IOP configuration RPCs during startup.
     constexpr int kDhcpGracePeriodUs = 10000000;
     DelayThread(kDhcpGracePeriodUs);
+    if (!hasDhcpLease())
+    {
+        MC_LOG_ERROR("network", "[PS2] DHCP did not acquire a lease; retry the connection after checking the network\n");
+        return false;
+    }
 #endif
 
     s_ready.store(true, std::memory_order_release);
