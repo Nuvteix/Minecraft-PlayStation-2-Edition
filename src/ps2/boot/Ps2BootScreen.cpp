@@ -29,7 +29,7 @@ void drawMissingAssetsScreen()
     Ps2BootText::drawCentered(centerX, centerY - 55.0f, kTextZ,
                               "Make sure the game files are located in:", 1.5f, kMuted);
     Ps2BootText::drawCentered(centerX, centerY - 25.0f, kTextZ,
-                              "PS2 USB: mass:/OptiCraftHeritage", 1.5f, kWhite);
+                              "PS2 USB: mass0:/OptiCraftHeritage", 1.5f, kWhite);
     Ps2BootText::drawCentered(centerX, centerY - 5.0f, kTextZ,
                               "PCSX2 Host: enable 'Host Filesystem' in settings", 1.5f, kYellow);
 
