@@ -93,9 +93,7 @@ bool platformGameSettingsLoadOption(GameSettings&, const std::string& key, const
 void platformGameSettingsFinalizeLoad(GameSettings& settings)
 {
 	settings.ofChunkUpdates = std::max(settings.ofChunkUpdates, (int_t)PLATFORM_MAX_RENDERER_UPDATES_PER_FRAME);
-	if (settings.limitFramerate == 2)
-		settings.limitFramerate = 30;
-	else if (settings.limitFramerate != 30 && settings.limitFramerate != 60)
+	if (settings.limitFramerate != 30 && settings.limitFramerate != 60)
 		settings.limitFramerate = 60;
 	migrateKey(settings.keyBindForward, 0);
 	migrateKey(settings.keyBindLeft, 0);

@@ -100,21 +100,10 @@
 #define PS2_DISABLE_RUNTIME_AUTOSAVE 1
 #define PS2_SKIP_NEW_WORLD_FULL_SAVE 1
 
-// Presentation rate cap, in frames per second. 0 = uncapped (present on every
-// vblank, so the rate floats between 60 and whatever the EE manages).
-//
-// 30 is the right target for this port: a steady 30 reads far smoother than a
-// rate swinging between 40 and 60, and holding the frame frees EE time for the
-// world tick instead of spending it on frames nobody perceives. The pacing loop
-// in Display_ps2.cpp waits in whole fields, so a frame the EE cannot finish in
-// budget still presents at its own rate rather than dropping to 15.
-//
-// Enabled 2026-08-30 as the first measured change from the render-pipeline
-// audit (see PS2 terrain renderer audit, bottleneck #1): this is a pure
-// config flip onto a pacing path that already existed and was previously
-// unused. Rollback is this line alone -- set back to 0 to restore the exact
-// uncapped behavior; nothing else in Display_ps2.cpp changes.
-#define PS2_TARGET_FPS 30
+// Fallback presentation cap. The in-game PS2 option selects 30 or 60 FPS;
+// prefer 60 before settings load and for any invalid/legacy value so startup
+// and migrated configurations do not silently add a 30 FPS input delay.
+#define PS2_TARGET_FPS 60
 
 // Tessellator backend facts. The GS path consumes native quads and the console
 // heap cannot afford the desktop 8 MB scratch buffer. Keep these values in the

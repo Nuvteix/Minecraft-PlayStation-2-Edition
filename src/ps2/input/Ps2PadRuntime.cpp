@@ -66,6 +66,12 @@ static float normalize(unsigned char value, unsigned char center) {
     return (float)c / 127.0f;
 }
 
+static void clearSnapshotEdges(int port) {
+    const Ps2PadSnapshot& snapshot = ps2PadGetSnapshot(port);
+    ps2PadUpdateSnapshot(port, snapshot.connected,
+        snapshot.leftX, snapshot.leftY, snapshot.rightX, snapshot.rightY,
+        snapshot.held, 0, 0);
+}
 
 static void waitStable(int port) {
     for (int i = 0; i < 500; ++i) {
@@ -127,15 +133,23 @@ static void pollPort(int port) {
     }
     int state = padGetState(port, 0);
     if (state == PAD_STATE_DISCONN || state == PAD_STATE_ERROR) {
+        clearSnapshotEdges(port);
         if (++p.badReads >= 5) { p.badReads = 0; disconnect(port); }
         return;
     }
-    if (port == 1 && !p.analogTried && state == PAD_STATE_STABLE) {
+    if (state != PAD_STATE_STABLE) {
+        clearSnapshotEdges(port);
+        return;
+    }
+    if (port == 1 && !p.analogTried) {
         padSetMainMode(port, 0, PAD_MMODE_DUALSHOCK, PAD_MMODE_LOCK);
         p.analogTried = true;
+        clearSnapshotEdges(port);
+        return;
     }
     padButtonStatus pad = {};
     if (!padRead(port, 0, &pad) || pad.mode == 0 || pad.btns == 0x0000) {
+        clearSnapshotEdges(port);
         if (++p.badReads >= 5) { p.badReads = 0; disconnect(port); }
         return;
     }
