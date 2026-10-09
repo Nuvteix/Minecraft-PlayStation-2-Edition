@@ -12,4 +12,5 @@ public:
 
 private:
     static void run(std::shared_ptr<ServerNBTStorage> server);
+    static void *platformThreadEntry(void *argument);
 };

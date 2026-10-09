@@ -5,13 +5,58 @@
 
 #include "GuiMultiplayer.h"
 #include "ServerNBTStorage.h"
+#include "platform/Thread.h"
 #ifdef PS2_PLATFORM
 #include "java/System.h"
+#include "ps2/system/Ps2ThreadPriority.h"
 #endif
+
+namespace
+{
+struct PollContext
+{
+    std::shared_ptr<ServerNBTStorage> server;
+    PlatformThread *thread = nullptr;
+};
+}
+
+void *ThreadPollServers::platformThreadEntry(void *argument)
+{
+    PollContext *context = static_cast<PollContext *>(argument);
+    if (context == nullptr)
+        return nullptr;
+
+    ThreadPollServers::run(context->server);
+    if (context->thread != nullptr)
+        delete context->thread;
+    delete context;
+    return nullptr;
+}
 
 void ThreadPollServers::start(const std::shared_ptr<ServerNBTStorage> &server)
 {
 #if defined(WII_PLATFORM) || defined(PS2_PLATFORM)
+    if (server == nullptr)
+    {
+        GuiMultiplayer::decrementThreadsPending();
+        return;
+    }
+
+    PollContext *context = new PollContext{server, new PlatformThread()};
+#ifdef PS2_PLATFORM
+    constexpr int kPingPriority = Ps2ThreadPriority::kNetwork;
+#else
+    constexpr int kPingPriority = 64;
+#endif
+    if (context->thread != nullptr && context->thread->start(&ThreadPollServers::platformThreadEntry, context,
+            32 * 1024, kPingPriority))
+    {
+        return;
+    }
+
+    if (context->thread != nullptr)
+        delete context->thread;
+    delete context;
     run(server);
 #else
     std::thread(&ThreadPollServers::run, server).detach();
