@@ -4,6 +4,8 @@
 #include "ps2/system/Ps2Bootstrap.h"
 
 #include "ps2/boot/Ps2BootScreen.h"
+#include "ps2/boot/Ps2BootRenderer.h"
+#include "ps2/boot/Ps2BootText.h"
 #include "ps2/input/Ps2Input.h"
 #include "ps2/input/Ps2UsbKeyboard.h"
 #include "ps2/render/Ps2Graphics.h"
@@ -22,6 +24,22 @@
 #include <string>
 
 extern "C" void ps2_dbg_init_memory();
+
+namespace
+{
+
+void showBootstrapStatus(const char* status)
+{
+    Ps2BootRenderer::setAlphaBlend(false);
+    Ps2BootRenderer::clear({0x00, 0x00, 0x00, 0x80});
+    Ps2BootText::drawCentered(
+        static_cast<float>(Ps2BootRenderer::width()) * 0.5f,
+        static_cast<float>(Ps2BootRenderer::height()) * 0.5f,
+        0xFFFF, status, 2.0f, {0xE8, 0xE8, 0xE8, 0x80});
+    Ps2BootRenderer::present();
+}
+
+} // namespace
 
 namespace Ps2Bootstrap
 {
@@ -45,16 +63,22 @@ bool initialize(int argc, char** argv)
     MC_LOG_INFO("platform", "[PS2] main() reached\n");
 
     Ps2Graphics::initialize();
+    showBootstrapStatus("GRAPHICS READY");
     MC_LOG_DEBUG("ps2.boot", "[PS2] bootstrap: graphics and VU ready\n");
     MC_LOG_INFO("platform", "[PS2] graphics OK - %dx%d\n", Ps2Graphics::width(), Ps2Graphics::height());
 
+    showBootstrapStatus("STARTING IOP STORAGE");
     Ps2Iop::initFileServices();
+    showBootstrapStatus("IOP STORAGE READY");
     MC_LOG_DEBUG("ps2.boot", "[PS2] bootstrap: IOP file services ready\n");
 
+    showBootstrapStatus("STARTING CONTROLLER");
     Ps2Input::initialize();
     Ps2Input::waitUntilReady();
+    showBootstrapStatus("CONTROLLER READY");
     MC_LOG_DEBUG("ps2.boot", "[PS2] pad init done\n");
 
+    showBootstrapStatus("SEARCHING GAME DATA");
     Ps2Assets::init(argc, argv);
     if (!Ps2Assets::available())
     {
