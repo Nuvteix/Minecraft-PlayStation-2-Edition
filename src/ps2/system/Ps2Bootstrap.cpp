@@ -48,6 +48,8 @@ void displayBootstrapStatus(const char* message)
     }
 }
 
+} // namespace
+
 bool initialize(int argc, char** argv)
 {
     // The EE kernel has no time slicing and starts main at priority 0, and the
@@ -116,8 +118,6 @@ bool initialize(int argc, char** argv)
     Ps2SaveSetup::selectStorage();
     return true;
 }
-
-} // namespace
 
 [[noreturn]] void finishGame()
 {
