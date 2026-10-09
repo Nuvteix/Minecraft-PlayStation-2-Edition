@@ -55,10 +55,13 @@ bool loadNetworkModules()
     // The EE-side ps2ip stack needs the Ethernet driver, NETMAN bridge, and
     // SMAP Ethernet driver on the IOP. Load these from the ELF so network
     // availability does not depend on optional data/irx files on USB/MX4SIO.
-    const bool dev9 = loadEmbeddedNetworkModule("ps2dev9", ps2dev9_irx, size_ps2dev9_irx);
-    const bool netman = loadEmbeddedNetworkModule("netman", netman_irx, size_netman_irx);
-    const bool smap = loadEmbeddedNetworkModule("smap", smap_irx, size_smap_irx);
-    return dev9 && netman && smap;
+    // A launcher may already have some of these modules resident. Duplicate
+    // module loads can fail even though the existing Ethernet path is usable;
+    // ps2ipInit() and the sm0 registration check below determine readiness.
+    (void)loadEmbeddedNetworkModule("ps2dev9", ps2dev9_irx, size_ps2dev9_irx);
+    (void)loadEmbeddedNetworkModule("netman", netman_irx, size_netman_irx);
+    (void)loadEmbeddedNetworkModule("smap", smap_irx, size_smap_irx);
+    return true;
 }
 #endif
 
