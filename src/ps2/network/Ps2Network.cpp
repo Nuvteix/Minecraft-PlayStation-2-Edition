@@ -40,6 +40,7 @@ PlatformMutex s_initMutex;
 std::atomic_bool s_ready{false};
 bool s_stackInitialized = false;
 bool s_dhcpStarted = false;
+bool s_linkModeConfigured = false;
 std::uint32_t s_localAddressNetworkOrder = 0;
 
 #if defined(PS2_ENABLE_NETWORK) && !defined(PS2_REMOTE_DEBUG)
@@ -160,9 +161,26 @@ bool startNetworkStack()
 }
 
 #if defined(PS2_ENABLE_NETWORK) && !defined(PS2_REMOTE_DEBUG)
+bool configureEthernetAutoNegotiation()
+{
+    if (s_linkModeConfigured)
+        return true;
+
+    const int result = NetManSetLinkMode(NETMAN_NETIF_ETH_LINK_MODE_AUTO);
+    if (result != 0)
+    {
+        MC_LOG_ERROR("network", "[PS2] failed to enable Ethernet auto-negotiation: %d\n", result);
+        return false;
+    }
+
+    s_linkModeConfigured = true;
+    MC_LOG_INFO("network", "[PS2] Ethernet auto-negotiation enabled\n");
+    return true;
+}
+
 bool waitForEthernetLink()
 {
-    constexpr int kLinkWaitAttempts = 10;
+    constexpr int kLinkWaitAttempts = 20;
     for (int attempt = 0; attempt < kLinkWaitAttempts; ++attempt)
     {
         if (NetManIoctl(NETMAN_NETIF_IOCTL_GET_LINK_STATUS, nullptr, 0, nullptr, 0) ==
@@ -237,16 +255,16 @@ bool initialize()
 #ifndef PS2_REMOTE_DEBUG
     // Wait for PHY auto-negotiation before starting DHCP; otherwise the first
     // client can send its DHCP discovery while SMAP still reports no carrier.
-    if (!waitForEthernetLink() || !startDhcp())
+    if (!configureEthernetAutoNegotiation() || !waitForEthernetLink() || !startDhcp())
         return false;
 
-    // Keep the DHCP wait in the network worker. Sample status once afterward
-    // rather than issuing repeated EE-to-IOP configuration RPCs during startup.
+    // Repeated EE-to-IOP DHCP status RPCs have caused IOP stalls on hardware.
+    // Give DHCP time to negotiate, then inspect its status once.
     constexpr int kDhcpGracePeriodUs = 10000000;
     DelayThread(kDhcpGracePeriodUs);
     if (!hasDhcpLease())
     {
-        MC_LOG_ERROR("network", "[PS2] DHCP did not acquire a lease; retry the connection after checking the network\n");
+        MC_LOG_ERROR("network", "[PS2] DHCP has not acquired a lease yet\n");
         return false;
     }
 #endif
