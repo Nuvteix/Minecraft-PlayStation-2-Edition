@@ -553,25 +553,33 @@ bool resolve(Result& out)
         return false;
     }
 
+    // Prefer the ELF's own directory first, then mounted mass storage. Some
+    // launchers leave CD/DVD or HDD filesystem drivers in a state where even
+    // a failed probe can block, so do not walk every legacy fallback before
+    // checking the device the game was launched from.
+    if (selectFrom(state().preferred))
+    {
+        out = state().result;
+        return true;
+    }
+
+    std::string massRoot;
+    if (!state().launchedFromDisc && probeUsbWithRetry(massRoot))
+    {
+        out = state().result;
+        return true;
+    }
+
     if (probeStaticCandidates())
     {
         out = state().result;
         return true;
     }
 
-    if (!state().launchedFromDisc)
+    if (!state().launchedFromDisc && probeScanRoots(massRoot))
     {
-        std::string massRoot;
-        if (probeUsbWithRetry(massRoot))
-        {
-            out = state().result;
-            return true;
-        }
-        if (probeScanRoots(massRoot))
-        {
-            out = state().result;
-            return true;
-        }
+        out = state().result;
+        return true;
     }
 
     printMissingData();
