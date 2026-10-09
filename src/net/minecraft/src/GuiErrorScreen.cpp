@@ -38,7 +38,7 @@ void GuiErrorScreen::drawScreen(int_t i, int_t j, float_t f)
 	drawString(fontRenderer,        "downloading the game and playing it offline.",                      width / 2 - 140, (height / 4 - 60) + 60 + 45, 0xa0a0a0);
 	drawString(fontRenderer,        uiText("To prevent level corruption, the current game has quit."),           width / 2 - 140, (height / 4 - 60) + 60 + 63, 0xa0a0a0);
 	drawString(fontRenderer,        uiText("Please restart the game."),                                          width / 2 - 140, (height / 4 - 60) + 60 + 81, 0xa0a0a0);
-#ifdef WII_PLATFORM
+#if defined(WII_PLATFORM) || defined(PS2_PLATFORM)
 	// This is a pre-cleanup snapshot. Minecraft::freeMemoryForCrash() has
 	// already released world data by the time this screen is drawn, so querying
 	// the allocator here would hide the cause rather than diagnose it.
