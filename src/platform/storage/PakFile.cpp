@@ -1,5 +1,6 @@
 #include "platform/storage/PakFile.h"
 
+#include <algorithm>
 #include <vector>
 
 #if PLATFORM_PS2
@@ -109,7 +110,8 @@ bool PakFile::readAt(std::uint32_t offset, void *dst, std::uint32_t length)
             bool ok = true;
             while (remaining > 0)
             {
-                const int got = static_cast<int>(::read(fd_, out, remaining));
+                const std::uint32_t request = std::min<std::uint32_t>(remaining, 8192u);
+                const int got = static_cast<int>(::read(fd_, out, request));
                 if (got <= 0)
                 {
                     ok = false;
@@ -127,7 +129,18 @@ bool PakFile::readAt(std::uint32_t offset, void *dst, std::uint32_t length)
     {
         if (std::fseek(file_, static_cast<long>(offset), SEEK_SET) == 0)
         {
-            return std::fread(dst, 1, length, file_) == length;
+            unsigned char *out = static_cast<unsigned char *>(dst);
+            std::uint32_t remaining = length;
+            while (remaining > 0)
+            {
+                const std::uint32_t request = std::min<std::uint32_t>(remaining, 8192u);
+                const std::size_t got = std::fread(out, 1, request, file_);
+                if (got == 0)
+                    return false;
+                out += got;
+                remaining -= static_cast<std::uint32_t>(got);
+            }
+            return true;
         }
     }
 

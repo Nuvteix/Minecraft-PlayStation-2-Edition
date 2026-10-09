@@ -370,10 +370,10 @@ bool probeUsbRoot(const std::string& massRoot)
         return false;
 
     std::vector<Candidate> candidates;
+    addInstallCandidate(candidates, PlatformStorage::join(massRoot, INSTALL_FOLDER), Ps2AssetLocator::Source::UsbMass);
     addInstallCandidate(candidates, massRoot, Ps2AssetLocator::Source::UsbMass);
     addInstallCandidate(candidates, PlatformStorage::join(massRoot, Ps2AssetLocator::OPL_APP_FOLDER),
                         Ps2AssetLocator::Source::UsbMass);
-    addInstallCandidate(candidates, PlatformStorage::join(massRoot, INSTALL_FOLDER), Ps2AssetLocator::Source::UsbMass);
     return selectFrom(candidates);
 }
 
@@ -569,6 +569,16 @@ bool resolve(Result& out)
         return false;
     }
 
+    std::string massRoot;
+    if (!state().launchedFromDisc)
+    {
+        if (probeUsbWithRetry(massRoot))
+        {
+            out = state().result;
+            return true;
+        }
+    }
+
     if (probeStaticCandidates())
     {
         out = state().result;
@@ -577,12 +587,6 @@ bool resolve(Result& out)
 
     if (!state().launchedFromDisc)
     {
-        std::string massRoot;
-        if (probeUsbWithRetry(massRoot))
-        {
-            out = state().result;
-            return true;
-        }
         if (probeScanRoots(massRoot))
         {
             out = state().result;
