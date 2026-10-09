@@ -1539,14 +1539,29 @@ void EntityLiving::onLivingUpdate()
 	}
 	else if (isClientWorld())
 	{
-		if (isAIEnabled())
+#if PLATFORM_MULTIPLAYER_REMOTE_LIVING_PHYSICS_TICK_DIVISOR > 1
+		// Remote multiplayer entities are server-authoritative. Their local AI
+		// path/task work only creates motion that is corrected by network updates;
+		// keep the interpolation and the separately throttled physics below.
+		if (isRemoteMultiplayerLiving(this))
 		{
-			updateAITasks();
+			moveStrafing = 0.0f;
+			moveForward = 0.0f;
+			randomYawVelocity = 0.0f;
+			isJumping = false;
 		}
 		else
+#endif
 		{
-			updatePlayerActionState();
-			rotationYawHead = rotationYaw;
+			if (isAIEnabled())
+			{
+				updateAITasks();
+			}
+			else
+			{
+				updatePlayerActionState();
+				rotationYawHead = rotationYaw;
+			}
 		}
 	}
 #if PLATFORM_MULTIPLAYER_REMOTE_LIVING_PHYSICS_TICK_DIVISOR > 1
