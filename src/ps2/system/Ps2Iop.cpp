@@ -8,6 +8,7 @@
 #include <cstdio>
 
 #include <delaythread.h>
+#include <iopcontrol.h>
 #include <loadfile.h>
 #include <sbv_patches.h>
 #include <sifrpc.h>
