@@ -36,7 +36,7 @@ void displayBootstrapStatus(const char* message)
     // Display status on-screen at the bottom
     const int screenHeight = Ps2Graphics::height();
     const int y = screenHeight - 40;
-    Ps2BootText::draw(20, y, 100, message, 1.0f, Ps2BootRenderer::Color(255, 255, 255));
+    Ps2BootText::draw(20, y, 100, message, 1.0f, Ps2BootRenderer::Color{255, 255, 255, 255});
     
     // Flush and display
     auto* graphics = Ps2Graphics::context();
