@@ -3,12 +3,16 @@
 #include "platform/Log.h"
 #include "ps2/system/Ps2Iop.h"
 #include "ps2/storage/Ps2Storage.h"
+#include "platform/storage/PathUtils.h"
 
 #include <cstdio>
+#include <string>
+#include <vector>
 
 #include <delaythread.h>
 #include <loadfile.h>
 #include <sifrpc.h>
+#include <unistd.h>
 
 #define NEWLIB_PORT_AWARE
 #include <fileXio_rpc.h>
@@ -34,6 +38,33 @@ bool fileXioServerAvailable()
             return true;
         DelayThread(10000);
     }
+    return false;
+}
+
+bool loadFileXioModule(int argc, char** argv)
+{
+    std::vector<std::string> paths;
+    if (argc > 0 && argv && argv[0] && argv[0][0] != '\0')
+    {
+        const std::string executablePath = PlatformStorage::normalizeSlashes(argv[0]);
+        const std::string launchDirectory = PlatformStorage::parent(executablePath);
+        if (!launchDirectory.empty())
+            paths.push_back(PlatformStorage::join(launchDirectory, "data/irx/fileXio.irx"));
+    }
+
+    char cwd[512] = {};
+    if (::getcwd(cwd, sizeof(cwd)) && cwd[0] != '\0')
+        paths.push_back(PlatformStorage::join(cwd, "data/irx/fileXio.irx"));
+    paths.push_back("data/irx/fileXio.irx");
+
+    for (const std::string& path : paths)
+    {
+        const int result = SifLoadModule(path.c_str(), 0, nullptr);
+        MC_LOG_INFO("platform", "[PS2] load %s -> %d\n", path.c_str(), result);
+        if (result >= 0)
+            return fileXioServerAvailable();
+    }
+    MC_LOG_WARN("platform", "[PS2] could not load fileXio.irx from the install data/irx directory\n");
     return false;
 }
 
@@ -81,13 +112,16 @@ int ensureRomModule(RomModule module)
     return results[index];
 }
 
-void initFileServices()
+void initFileServices(int argc, char** argv)
 {
     static bool initialized = false;
     if (initialized)
         return;
 
     SifLoadFileInit();
+    if (!fileXioServerAvailable())
+        loadFileXioModule(argc, argv);
+
     if (!fileXioServerAvailable())
         MC_LOG_WARN("platform", "[PS2] FILEXIO RPC server unavailable; skipping fileXioInit\n");
     else

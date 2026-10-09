@@ -574,3 +574,17 @@ foreach(_PS2_USB_IRX usbd ps2kbd)
 endforeach()
 unset(_PS2_USB_IRX)
 unset(_PS2_USB_IRX_SOURCE)
+
+set(_PS2_FILEXIO_IRX_SOURCE "${PS2SDK}/iop/irx/fileXio.irx")
+if(EXISTS "${_PS2_FILEXIO_IRX_SOURCE}")
+    add_custom_command(TARGET OptiCraft POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${PS2_APP_DIR}/data/irx"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${_PS2_FILEXIO_IRX_SOURCE}" "${PS2_APP_DIR}/data/irx/fileXio.irx"
+        COMMENT "Packaging ${PS2_APP_DIR}/data/irx/fileXio.irx"
+        VERBATIM
+    )
+else()
+    message(WARNING "PS2 fileXio support: ${_PS2_FILEXIO_IRX_SOURCE} not found")
+endif()
+unset(_PS2_FILEXIO_IRX_SOURCE)
