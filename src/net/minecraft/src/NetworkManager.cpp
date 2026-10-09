@@ -464,6 +464,20 @@ void NetworkManager::readThreadRun()
 	numReadThreads++;
 	try
 	{
+#ifdef PS2_PLATFORM
+		while (running && !serverTerminating)
+		{
+			// The PS2 network worker has a higher priority than the frame loop.
+			// Bound each burst so a busy server cannot keep the EE away from
+			// rendering and simulation while packets are continuously available.
+			for (int packets = 0; packets < 8 && running && !serverTerminating; ++packets)
+			{
+				if (!readPacket())
+					break;
+			}
+			sleepThread();
+		}
+#else
 		while (running && !serverTerminating)
 		{
 			while (running && !serverTerminating && readPacket())
@@ -471,6 +485,7 @@ void NetworkManager::readThreadRun()
 			}
 			sleepThread();
 		}
+#endif
 	}
 	catch (...)
 	{

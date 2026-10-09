@@ -8,6 +8,9 @@
 #include "GuiConnectFailed.h"
 #include "FontRenderer.h"
 #include "Minecraft.h"
+#ifdef PS2_PLATFORM
+#include "ps2/network/Ps2Network.h"
+#endif
 #include <iostream>
 
 GuiConnecting::GuiConnecting(Minecraft *minecraft, const std::string &host, int_t port)
@@ -90,7 +93,14 @@ void GuiConnecting::drawScreen(int_t i, int_t j, float_t f)
 	if (clientHandler == nullptr)
 	{
 		drawCenteredString(fontRenderer, stringtranslate->translateKey("connect.connecting"),   width / 2, height / 2 - 50, 0xffffff);
+#ifdef PS2_PLATFORM
+		const char *status = Ps2Network::isReady()
+			? "Opening server connection..."
+			: "Waiting for Ethernet/DHCP...";
+		drawCenteredString(fontRenderer, status, width / 2, height / 2 - 10, 0xffffff);
+#else
 		drawCenteredString(fontRenderer, "",                                                    width / 2, height / 2 - 10, 0xffffff);
+#endif
 	}
 	else
 	{

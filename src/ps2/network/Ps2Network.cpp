@@ -258,14 +258,21 @@ bool initialize()
     if (!configureEthernetAutoNegotiation() || !waitForEthernetLink() || !startDhcp())
         return false;
 
-    // Repeated EE-to-IOP DHCP status RPCs have caused IOP stalls on hardware.
-    // Give DHCP time to negotiate, then inspect its status once.
+    // Avoid spending the whole grace period idle when DHCP finishes quickly.
+    // Keep only one early status query and one final query: frequent status RPCs
+    // have caused IOP stalls on hardware.
     constexpr int kDhcpGracePeriodUs = 10000000;
-    DelayThread(kDhcpGracePeriodUs);
+    constexpr int kDhcpEarlyCheckUs = 2000000;
+    DelayThread(kDhcpEarlyCheckUs);
     if (!hasDhcpLease())
     {
-        MC_LOG_ERROR("network", "[PS2] DHCP has not acquired a lease yet\n");
-        return false;
+        MC_LOG_INFO("network", "[PS2] DHCP lease still pending; waiting the remaining grace period\n");
+        DelayThread(kDhcpGracePeriodUs - kDhcpEarlyCheckUs);
+        if (!hasDhcpLease())
+        {
+            MC_LOG_ERROR("network", "[PS2] DHCP has not acquired a lease yet\n");
+            return false;
+        }
     }
 #endif
 
@@ -273,7 +280,7 @@ bool initialize()
 #ifdef PS2_REMOTE_DEBUG
     MC_LOG_INFO("network", "[PS2] ps2link shared network ready; enabling socket attempts\n");
 #else
-    MC_LOG_INFO("network", "[PS2] DHCP grace period complete; enabling socket attempts\n");
+    MC_LOG_INFO("network", "[PS2] DHCP lease acquired; enabling socket attempts\n");
 #endif
     return true;
 #endif
