@@ -12,7 +12,7 @@ namespace Ps2Iop
         MemoryCardServer
     };
 
-    void initFileServices(int argc = 0, char** argv = nullptr);
+    void initFileServices();
     int loadModule(const char* path);
     int ensureRomModule(RomModule module);
 }

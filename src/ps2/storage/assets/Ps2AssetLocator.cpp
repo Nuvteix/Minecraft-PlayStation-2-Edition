@@ -357,8 +357,6 @@ bool probeUsbRoot(const std::string& massRoot)
     addInstallCandidate(candidates, massRoot, Ps2AssetLocator::Source::UsbMass);
     addInstallCandidate(candidates, PlatformStorage::join(massRoot, Ps2AssetLocator::OPL_APP_FOLDER),
                         Ps2AssetLocator::Source::UsbMass);
-    addInstallCandidate(candidates, PlatformStorage::join(massRoot, Ps2AssetLocator::BUILD_OUTPUT_FOLDER),
-                        Ps2AssetLocator::Source::UsbMass);
     addInstallCandidate(candidates, PlatformStorage::join(massRoot, INSTALL_FOLDER), Ps2AssetLocator::Source::UsbMass);
     return selectFrom(candidates);
 }

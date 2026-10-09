@@ -3,19 +3,39 @@
 #include "platform/Log.h"
 #include "ps2/system/Ps2Iop.h"
 #include "ps2/storage/Ps2Storage.h"
-#include "platform/storage/PathUtils.h"
+#include "ps2/storage/assets/Ps2AssetLocator.h"
 
 #include <cstdio>
-#include <string>
-#include <vector>
 
 #include <delaythread.h>
 #include <loadfile.h>
+#include <sbv_patches.h>
 #include <sifrpc.h>
-#include <unistd.h>
 
 #define NEWLIB_PORT_AWARE
 #include <fileXio_rpc.h>
+
+extern "C"
+{
+extern unsigned char iomanx_irx[];
+extern unsigned int size_iomanx_irx;
+extern unsigned char filexio_irx[];
+extern unsigned int size_filexio_irx;
+#if defined(PS2_ENABLE_MX4SIO)
+extern unsigned char usbd_irx[];
+extern unsigned int size_usbd_irx;
+extern unsigned char usbmass_bd_irx[];
+extern unsigned int size_usbmass_bd_irx;
+extern unsigned char sio2man_irx[];
+extern unsigned int size_sio2man_irx;
+extern unsigned char bdm_irx[];
+extern unsigned int size_bdm_irx;
+extern unsigned char bdmfs_fatfs_irx[];
+extern unsigned int size_bdmfs_fatfs_irx;
+extern unsigned char mx4sio_bd_irx[];
+extern unsigned int size_mx4sio_bd_irx;
+#endif
+}
 
 extern "C"
 {
@@ -41,31 +61,75 @@ bool fileXioServerAvailable()
     return false;
 }
 
-bool loadFileXioModule(int argc, char** argv)
+int loadEmbeddedIrx(const char* name, unsigned char* data, unsigned int size)
 {
-    std::vector<std::string> paths;
-    if (argc > 0 && argv && argv[0] && argv[0][0] != '\0')
+    int moduleResult = 1;
+    const int result = SifExecModuleBuffer(data, static_cast<int>(size), 0, nullptr, &moduleResult);
+    const bool loaded = result >= 0 && moduleResult >= 0 && moduleResult != 1;
+    MC_LOG_INFO("platform", "[PS2] embedded %s -> load=%d start=%d\n",
+                name, result, moduleResult);
+    return loaded ? result : -1;
+}
+
+bool loadFileIoModules()
+{
+    if (fileXioServerAvailable())
     {
-        const std::string executablePath = PlatformStorage::normalizeSlashes(argv[0]);
-        const std::string launchDirectory = PlatformStorage::parent(executablePath);
-        if (!launchDirectory.empty())
-            paths.push_back(PlatformStorage::join(launchDirectory, "data/irx/fileXio.irx"));
+        Ps2AssetLocator::addDiagnostic("FILEXIO service: already available");
+        return true;
     }
 
-    char cwd[512] = {};
-    if (::getcwd(cwd, sizeof(cwd)) && cwd[0] != '\0')
-        paths.push_back(PlatformStorage::join(cwd, "data/irx/fileXio.irx"));
-    paths.push_back("data/irx/fileXio.irx");
+    loadEmbeddedIrx("iomanX", iomanx_irx, size_iomanx_irx);
+    loadEmbeddedIrx("fileXio", filexio_irx, size_filexio_irx);
+    const bool available = fileXioServerAvailable();
+    Ps2AssetLocator::addDiagnostic(available
+        ? "FILEXIO service: ready"
+        : "FILEXIO service: unavailable");
+    return available;
+}
 
-    for (const std::string& path : paths)
+#if defined(PS2_ENABLE_MX4SIO)
+bool loadMx4sioModules()
+{
+    const Ps2Storage::MassStorageProbe mounted = Ps2Storage::probeMassStorage(true);
+    if (!mounted.root.empty())
     {
-        const int result = SifLoadModule(path.c_str(), 0, nullptr);
-        MC_LOG_INFO("platform", "[PS2] load %s -> %d\n", path.c_str(), result);
-        if (result >= 0)
-            return fileXioServerAvailable();
+        MC_LOG_INFO("platform", "[PS2] using existing BDM storage at %s\n",
+                    mounted.root.c_str());
+        Ps2AssetLocator::addDiagnostic("Existing BDM mount: " + mounted.root);
+        return true;
     }
-    MC_LOG_WARN("platform", "[PS2] could not load fileXio.irx from the install data/irx directory\n");
+
+    const int sio2 = loadEmbeddedIrx("sio2man", sio2man_irx, size_sio2man_irx);
+    const int bdm = loadEmbeddedIrx("bdm", bdm_irx, size_bdm_irx);
+    const int filesystem = loadEmbeddedIrx(
+        "bdmfs_fatfs (FAT/exFAT)", bdmfs_fatfs_irx, size_bdmfs_fatfs_irx);
+    const int usbd = loadEmbeddedIrx("usbd", usbd_irx, size_usbd_irx);
+    const int usbMass = loadEmbeddedIrx("usbmass_bd", usbmass_bd_irx, size_usbmass_bd_irx);
+    const int mx4sio = loadEmbeddedIrx("mx4sio_bd", mx4sio_bd_irx, size_mx4sio_bd_irx);
+    const bool stackLoaded = sio2 >= 0 && bdm >= 0 && filesystem >= 0 && usbd >= 0 &&
+                             usbMass >= 0 && mx4sio >= 0;
+
+    for (int waited = 0; waited < 3000; waited += 100)
+    {
+        const Ps2Storage::MassStorageProbe probe = Ps2Storage::probeMassStorage(true);
+        if (!probe.root.empty())
+        {
+            MC_LOG_INFO("platform", "[PS2] MX4SIO mounted at %s\n", probe.root.c_str());
+            Ps2AssetLocator::addDiagnostic("BDM mounted: " + probe.root);
+            return true;
+        }
+        DelayThread(100000);
+    }
+
+    MC_LOG_WARN("platform", "[PS2] BDM/MX4SIO driver stack %s; no massN: volume appeared\n",
+                stackLoaded ? "loaded" : "had module errors");
+    Ps2AssetLocator::addDiagnostic(stackLoaded
+        ? "BDM FAT/exFAT + USB/MX4SIO IRXs loaded; no massN: device"
+        : "BDM FAT/exFAT + USB/MX4SIO IRX load error");
     return false;
+}
+#endif
 }
 
 const char* romModulePath(Ps2Iop::RomModule module)
@@ -112,18 +176,18 @@ int ensureRomModule(RomModule module)
     return results[index];
 }
 
-void initFileServices(int argc, char** argv)
+void initFileServices()
 {
     static bool initialized = false;
     if (initialized)
         return;
 
     SifLoadFileInit();
-    if (!fileXioServerAvailable())
-        loadFileXioModule(argc, argv);
+    sbv_patch_enable_lmb();
+    sbv_patch_disable_prefix_check();
 
-    if (!fileXioServerAvailable())
-        MC_LOG_WARN("platform", "[PS2] FILEXIO RPC server unavailable; skipping fileXioInit\n");
+    if (!loadFileIoModules())
+        MC_LOG_WARN("platform", "[PS2] FILEXIO RPC server unavailable\n");
     else
     {
         const int fileXioResult = fileXioInit();
@@ -134,13 +198,12 @@ void initFileServices(int argc, char** argv)
             MC_LOG_INFO("platform", "[PS2] fileXio initialized for POSIX filesystem access\n");
     }
 
+#if defined(PS2_ENABLE_MX4SIO)
+    // Bring up BDM only after the display is live, and before PADMAN claims SIO2.
+    loadMx4sioModules();
+#endif
+
     Ps2Storage::setFileIoReady();
-    const Ps2Storage::MassStorageProbe mass = Ps2Storage::probeMassStorage(true);
-    if (mass.root.empty())
-        ensureRomModule(RomModule::Sio2);
-    else
-        MC_LOG_INFO("platform", "[PS2] preserving mounted storage stack at %s; not reloading SIO2MAN\n",
-                    mass.root.c_str());
     initialized = true;
 }
 

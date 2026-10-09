@@ -59,6 +59,7 @@ option(PS2_OPTIMIZATION_VALIDATION "Enable low-overhead counters for validating 
 option(PS2_REMOTE_DEBUG "Enable hardware remote debugging through ps2link/ps2client" OFF)
 option(PS2_ENABLE_SOUND "Enable PS2 audsrv ADPCM sound backend" ON)
 option(PS2_ENABLE_NETWORK "Enable PS2 TCP multiplayer through PS2SDK ps2ip/SMAP" ON)
+option(PS2_ENABLE_MX4SIO "Embed PS2SDK BDM/exFAT and MX4SIO drivers" ON)
 
 if(PS2_OPTIMIZATION_VALIDATION AND MC_LOG_LEVEL LESS 1)
     message(WARNING "PS2_OPTIMIZATION_VALIDATION needs MC_LOG_LEVEL=1 or higher to emit summaries")
@@ -261,6 +262,44 @@ endif()
 # --- Target -------------------------------------------------------------------
 add_executable(OptiCraft ${PS2_SOURCES})
 set_target_properties(OptiCraft PROPERTIES SUFFIX ".elf")
+
+find_program(PS2_BIN2C NAMES bin2c
+    HINTS "${PS2SDK}/bin" "${PS2DEV}/bin")
+if(NOT PS2_BIN2C)
+    message(FATAL_ERROR "PS2 build requires PS2SDK bin2c to embed IOP driver modules")
+endif()
+
+function(ps2_embed_iop_irx module symbol)
+    set(irx_source "${PS2SDK}/iop/irx/${module}.irx")
+    if(NOT EXISTS "${irx_source}")
+        message(FATAL_ERROR
+            "PS2 IOP driver ${module}.irx is required at ${irx_source}")
+    endif()
+
+    set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/embedded_irx")
+    set(generated_source "${generated_dir}/${symbol}.c")
+    add_custom_command(
+        OUTPUT "${generated_source}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${generated_dir}"
+        COMMAND "${PS2_BIN2C}" "${irx_source}" "${generated_source}" "${symbol}"
+        DEPENDS "${irx_source}"
+        COMMENT "Embedding ${module}.irx"
+        VERBATIM
+    )
+    target_sources(OptiCraft PRIVATE "${generated_source}")
+endfunction()
+
+ps2_embed_iop_irx(iomanX iomanx_irx)
+ps2_embed_iop_irx(fileXio filexio_irx)
+if(PS2_ENABLE_MX4SIO)
+    target_compile_definitions(OptiCraft PRIVATE PS2_ENABLE_MX4SIO=1)
+    ps2_embed_iop_irx(usbd usbd_irx)
+    ps2_embed_iop_irx(usbmass_bd usbmass_bd_irx)
+    ps2_embed_iop_irx(sio2man sio2man_irx)
+    ps2_embed_iop_irx(bdm bdm_irx)
+    ps2_embed_iop_irx(bdmfs_fatfs bdmfs_fatfs_irx)
+    ps2_embed_iop_irx(mx4sio_bd mx4sio_bd_irx)
+endif()
 
 target_compile_features(OptiCraft PRIVATE cxx_std_17)
 
@@ -574,17 +613,3 @@ foreach(_PS2_USB_IRX usbd ps2kbd)
 endforeach()
 unset(_PS2_USB_IRX)
 unset(_PS2_USB_IRX_SOURCE)
-
-set(_PS2_FILEXIO_IRX_SOURCE "${PS2SDK}/iop/irx/fileXio.irx")
-if(EXISTS "${_PS2_FILEXIO_IRX_SOURCE}")
-    add_custom_command(TARGET OptiCraft POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${PS2_APP_DIR}/data/irx"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${_PS2_FILEXIO_IRX_SOURCE}" "${PS2_APP_DIR}/data/irx/fileXio.irx"
-        COMMENT "Packaging ${PS2_APP_DIR}/data/irx/fileXio.irx"
-        VERBATIM
-    )
-else()
-    message(WARNING "PS2 fileXio support: ${_PS2_FILEXIO_IRX_SOURCE} not found")
-endif()
-unset(_PS2_FILEXIO_IRX_SOURCE)

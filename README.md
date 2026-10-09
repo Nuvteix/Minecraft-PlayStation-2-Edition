@@ -33,13 +33,15 @@ pwsh -File .\build_windows.ps1 wii -Release -Jobs 4
 pwsh -File .\build_windows.ps1 ps2
 ```
 
-## OPL and MX4SIO
+## MX4SIO and exFAT
 
-OPL exposes MX4SIO through its BDM filesystem as a numbered mass-storage device
-(usually `mass0:/`). Enable MX4SIO in OPL's BDM device settings, then place the
-ELF, `assets.pak`, and accompanying `data/` directory together in an OPL app
-folder such as `mass0:/APPS/minecraft/`. Launch that ELF from OPL. The game can
-then read assets and save worlds/configuration on the same device.
+OPL and wLaunchELF ISR can expose MX4SIO through BDM as a numbered
+mass-storage device (usually `mass0:/`). Enable MX4SIO and exFAT support in the
+launcher, then place the ELF, `assets.pak`, and accompanying `data/` directory
+together in an app folder such as `mass0:/APPS/minecraft/`. Launch that ELF
+from the launcher. PS2 builds embed the PS2SDK BDM, FAT/exFAT filesystem, USB
+mass-storage, and MX4SIO drivers, so storage does not depend on the launcher's
+IOP drivers remaining resident.
 
 ---
 

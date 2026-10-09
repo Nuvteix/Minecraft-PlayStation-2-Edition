@@ -44,12 +44,12 @@ bool initialize(int argc, char** argv)
     ps2_dbg_init_memory();
     MC_LOG_INFO("platform", "[PS2] main() reached\n");
 
-    Ps2Iop::initFileServices(argc, argv);
-    MC_LOG_DEBUG("ps2.boot", "[PS2] bootstrap: IOP file services ready\n");
-
     Ps2Graphics::initialize();
     MC_LOG_DEBUG("ps2.boot", "[PS2] bootstrap: graphics and VU ready\n");
     MC_LOG_INFO("platform", "[PS2] graphics OK - %dx%d\n", Ps2Graphics::width(), Ps2Graphics::height());
+
+    Ps2Iop::initFileServices();
+    MC_LOG_DEBUG("ps2.boot", "[PS2] bootstrap: IOP file services ready\n");
 
     Ps2Input::initialize();
     Ps2Input::waitUntilReady();
