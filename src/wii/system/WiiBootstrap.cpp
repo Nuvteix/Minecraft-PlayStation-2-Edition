@@ -22,7 +22,7 @@ bool showMissingAssetsScreen()
 	WiiConsole::write("       Make sure the game files are located in:\n\n");
 	WiiConsole::write("             Wii SD: sd:/apps/OptiCraft\n");
 	WiiConsole::write("           Wii USB: usb:/apps/OptiCraft\n");
-	WiiConsole::write("      PS2 USB: mass:/OptiCraftHeritage\n\n");
+	WiiConsole::write("      PS2 USB/MX4SIO: mass:/OptiCraftHeritage\n\n");
 	WiiConsole::write("                 Press HOME to exit.\n");
 	std::fflush(stdout);
 

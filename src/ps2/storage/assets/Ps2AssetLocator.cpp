@@ -52,6 +52,7 @@ struct LocatorState
     // succeeding first.
     bool launchedFromDisc = false;
     bool scanAttempted = false;
+    std::string launchDirectory;
     std::vector<Candidate> preferred;
     std::vector<Candidate> fallbacks;
     Ps2AssetLocator::Result result;
@@ -68,6 +69,14 @@ bool hasDevicePrefix(const std::string& path)
 {
     const std::size_t colon = path.find(':');
     return colon != std::string::npos && colon > 0;
+}
+
+bool isDeviceRootPath(const std::string& path)
+{
+    const std::size_t colon = path.find(':');
+    return colon != std::string::npos &&
+        (colon + 1 == path.size() ||
+         (colon + 2 == path.size() && path[colon + 1] == '/'));
 }
 
 std::string uppercaseFilesystemPath(const std::string& path)
@@ -171,6 +180,34 @@ std::string dataRootOverride(int argc, char* argv[])
 
 void addLaunchCandidates(int argc, char* argv[])
 {
+    std::string executablePath;
+    std::string launchDirectory;
+    if (argc > 0 && argv && argv[0] && argv[0][0] != '\0')
+    {
+        executablePath = PlatformStorage::normalizeSlashes(argv[0]);
+        if (hasDevicePrefix(executablePath))
+        {
+            launchDirectory = PlatformStorage::parent(executablePath);
+            if (launchDirectory.empty())
+            {
+                const std::size_t colon = executablePath.find(':');
+                if (colon != std::string::npos)
+                    launchDirectory = executablePath.substr(0, colon + 1);
+            }
+        }
+    }
+    if (launchDirectory.empty())
+    {
+        char cwd[512] = {};
+        if (::getcwd(cwd, sizeof(cwd)) && hasDevicePrefix(cwd))
+        {
+            const std::string currentDirectory = PlatformStorage::normalizeSlashes(cwd);
+            if (!isDeviceRootPath(currentDirectory))
+                launchDirectory = currentDirectory;
+        }
+    }
+    state().launchDirectory = launchDirectory;
+
     const std::string overrideRoot = dataRootOverride(argc, argv);
     if (!overrideRoot.empty())
     {
@@ -180,30 +217,21 @@ void addLaunchCandidates(int argc, char* argv[])
         return;
     }
 
-    if (argc > 0 && argv && argv[0] && argv[0][0] != '\0')
+    if (!executablePath.empty() && hasDevicePrefix(executablePath))
     {
-        const std::string executablePath = PlatformStorage::normalizeSlashes(argv[0]);
-        if (hasDevicePrefix(executablePath))
-        {
-            std::string launchDirectory = PlatformStorage::parent(executablePath);
-            if (launchDirectory.empty())
-            {
-                const std::size_t colon = executablePath.find(':');
-                if (colon != std::string::npos)
-                    launchDirectory = executablePath.substr(0, colon + 1);
-            }
-            const Ps2AssetLocator::Source launchSource = classifyPath(executablePath);
-            addInstallCandidate(state().preferred, launchDirectory, launchSource);
-            if (launchSource == Ps2AssetLocator::Source::Disc)
-                state().launchedFromDisc = true;
-            MC_LOG_INFO("assets", "[PS2][assets] launch directory: %s\n", launchDirectory.c_str());
-        }
+        const Ps2AssetLocator::Source launchSource = classifyPath(executablePath);
+        addInstallCandidate(state().preferred, launchDirectory, launchSource);
+        if (launchSource == Ps2AssetLocator::Source::Disc)
+            state().launchedFromDisc = true;
+        MC_LOG_INFO("assets", "[PS2][assets] launch directory: %s\n", launchDirectory.c_str());
     }
 
     char cwd[512] = {};
     if (::getcwd(cwd, sizeof(cwd)) && hasDevicePrefix(cwd))
     {
         const std::string currentDirectory = PlatformStorage::normalizeSlashes(cwd);
+        if (state().launchDirectory.empty() && !isDeviceRootPath(currentDirectory))
+            state().launchDirectory = currentDirectory;
         addInstallCandidate(state().preferred, currentDirectory, classifyPath(currentDirectory));
     }
 }
@@ -513,6 +541,7 @@ namespace Ps2AssetLocator
 void init(int argc, char* argv[])
 {
     ensureInitialized();
+    state().launchDirectory.clear();
     addLaunchCandidates(argc, argv);
 
     if (!state().resolved || state().preferred.empty())
@@ -598,6 +627,12 @@ bool resolve(Result& out)
     return false;
 }
 
+std::string launchDirectory()
+{
+    ensureInitialized();
+    return state().launchDirectory;
+}
+
 std::string resolveFile(const std::string& dataRoot, Source source, const std::string& key)
 {
     Candidate candidate{ dataRoot, source };
@@ -634,7 +669,7 @@ const char* sourceName(Source source)
     {
         case Source::Override: return "data-root override";
         case Source::LaunchDevice: return "launch device";
-        case Source::UsbMass: return "USB mass storage";
+        case Source::UsbMass: return "USB/MX4SIO mass storage";
         case Source::HardDisk: return "mounted HDD/PFS";
         case Source::Disc: return "CD/DVD";
         case Source::Host: return "host";

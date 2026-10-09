@@ -4,6 +4,9 @@
 #include "platform/Storage.h"
 #include "platform/Log.h"
 #include "DynamicMod.h"
+#ifdef PS2_PLATFORM
+#include "ps2/storage/assets/Ps2Assets.h"
+#endif
 
 // Built-in mods
 #include "toomanyitems/TooManyItemsMod.h"
@@ -113,6 +116,17 @@ void ModManager::setModEnabled(const std::string &id, bool enabled)
 
 std::string ModManager::getGameModsDir() const
 {
+#ifdef PS2_PLATFORM
+    const std::string launchDir = Ps2Assets::launchDir();
+    if (launchDir.rfind("mass", 0) == 0 && launchDir.find(':') != std::string::npos)
+        return PlatformStorage::join(launchDir, "mods");
+    if (Ps2Assets::source() == Ps2Assets::Source::UsbMass)
+    {
+        const std::string installDir = Ps2Assets::installDir();
+        if (!installDir.empty())
+            return PlatformStorage::join(installDir, "mods");
+    }
+#endif
     File *dataDir = Minecraft::getMinecraftDir();
     if (dataDir != nullptr)
     {

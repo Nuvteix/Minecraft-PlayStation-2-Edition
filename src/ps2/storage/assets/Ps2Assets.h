@@ -22,6 +22,7 @@ namespace Ps2Assets
     // device whose paths have no slash after the colon ("host:data"), where
     // taking the parent would otherwise lose the device entirely.
     std::string installDir();
+    std::string launchDir();
 
     std::string assetDir();
     std::string resourcesDir();

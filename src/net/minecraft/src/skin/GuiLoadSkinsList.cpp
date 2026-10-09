@@ -109,8 +109,13 @@ GuiLoadSkinsList::GuiLoadSkinsList(GuiScreen *parent, Source source)
     }
     else
     {
+#ifdef PS2_PLATFORM
+        screenTitle = "Available Skins (USB/MX4SIO)";
+        emptyMessage1 = "No .png skins found on USB/MX4SIO.";
+#else
         screenTitle = "Available Skins (USB Storage)";
         emptyMessage1 = "No .png skins found on USB storage.";
+#endif
         emptyMessage2 = "Place skins in mass:/skins/ or mass:/OptiCraftHeritage/skins/.";
     }
 }

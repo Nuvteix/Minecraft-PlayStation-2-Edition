@@ -37,6 +37,7 @@ namespace Ps2AssetLocator
 
     void init(int argc, char* argv[]);
     bool resolve(Result& out);
+    std::string launchDirectory();
     std::string resolveFile(const std::string& dataRoot, Source source, const std::string& key);
     std::string resolveDirectory(const std::string& dataRoot, Source source, const std::string& key);
     const char* sourceName(Source source);

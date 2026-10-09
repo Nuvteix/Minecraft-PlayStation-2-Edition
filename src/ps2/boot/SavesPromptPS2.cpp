@@ -186,10 +186,10 @@ SaveLocation ps2_show_saves_prompt() {
                       "Choose where to save your worlds", fittedSubtitleScale, C_LGRAY);
             if (!has_mass)
                 sp_str_cx(font, cx, subtitleY + CS * fittedSubtitleScale + 8.0f,
-                          Z, "USB DRIVE NOT DETECTED", noteScale, C_LGRAY);
+                          Z, "USB/MX4SIO NOT DETECTED", noteScale, C_LGRAY);
         }
 
-        const char* labels[3] = {"Memory Card", "USB Drive", "Don't Save"};
+        const char* labels[3] = {"Memory Card", "USB/MX4SIO", "Don't Save"};
         for (int option = 0; option < BTN_COUNT; ++option)
         {
             const float y = buttonY + option * (buttonH + buttonGap);

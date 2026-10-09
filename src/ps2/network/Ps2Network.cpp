@@ -181,6 +181,7 @@ bool configureEthernetAutoNegotiation()
 bool waitForEthernetLink()
 {
     constexpr int kLinkWaitAttempts = 20;
+    constexpr int kLinkPollIntervalUs = 250000;
     for (int attempt = 0; attempt < kLinkWaitAttempts; ++attempt)
     {
         if (NetManIoctl(NETMAN_NETIF_IOCTL_GET_LINK_STATUS, nullptr, 0, nullptr, 0) ==
@@ -191,7 +192,7 @@ bool waitForEthernetLink()
         }
 
         if (attempt + 1 < kLinkWaitAttempts)
-            DelayThread(1000000);
+            DelayThread(kLinkPollIntervalUs);
     }
 
     MC_LOG_ERROR("network", "[PS2] Ethernet link did not come up; check the cable and adapter\n");
@@ -258,21 +259,20 @@ bool initialize()
     if (!configureEthernetAutoNegotiation() || !waitForEthernetLink() || !startDhcp())
         return false;
 
-    // Avoid spending the whole grace period idle when DHCP finishes quickly.
-    // Keep only one early status query and one final query: frequent status RPCs
-    // have caused IOP stalls on hardware.
-    constexpr int kDhcpGracePeriodUs = 10000000;
-    constexpr int kDhcpEarlyCheckUs = 2000000;
-    DelayThread(kDhcpEarlyCheckUs);
-    if (!hasDhcpLease())
+    // DHCP runs asynchronously. Check at a coarse interval instead of adding a
+    // fixed grace-period sleep; connections proceed as soon as the lease exists.
+    constexpr int kDhcpPollIntervalUs = 2000000;
+    constexpr int kDhcpMaxPolls = 5;
+    bool leaseReady = hasDhcpLease();
+    for (int poll = 0; !leaseReady && poll < kDhcpMaxPolls; ++poll)
     {
-        MC_LOG_INFO("network", "[PS2] DHCP lease still pending; waiting the remaining grace period\n");
-        DelayThread(kDhcpGracePeriodUs - kDhcpEarlyCheckUs);
-        if (!hasDhcpLease())
-        {
-            MC_LOG_ERROR("network", "[PS2] DHCP has not acquired a lease yet\n");
-            return false;
-        }
+        DelayThread(kDhcpPollIntervalUs);
+        leaseReady = hasDhcpLease();
+    }
+    if (!leaseReady)
+    {
+        MC_LOG_ERROR("network", "[PS2] DHCP has not acquired a lease yet\n");
+        return false;
     }
 #endif
 

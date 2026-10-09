@@ -32,6 +32,14 @@ namespace Ps2SaveStorage
 
 std::string configRoot() { return PlatformStorage::join(root(), "OPTICRAFT_CFG"); }
 
+namespace
+{
+bool isMassStoragePath(const std::string& path)
+{
+    return path.rfind("mass", 0) == 0 && path.find(':') != std::string::npos;
+}
+}
+
 bool available(Target targetValue)
 {
     if (targetValue == Target::MemoryCard)
@@ -86,18 +94,14 @@ void setTarget(Target targetValue)
         if (state().massRoot.empty())
             state().massRoot = "mass:/";
 
-        // Saves live inside the install folder, next to data/. Following the
-        // resolved install directory rather than a fixed name is what lets the
-        // folder be called anything: rename it and the saves inside travel with
-        // it, so there is nothing to migrate.
-        //
-        // Only when the install cannot hold them -- a read-only disc, or a host:
-        // launch -- do saves need a home of their own, and then the conventional
-        // name on mass storage is the one place both a disc build and a USB
-        // build will agree on.
-        const bool installIsWritable = Ps2Assets::source() == Ps2Assets::Source::UsbMass;
+        // OPL may expose the executable's numbered BDM path (for example
+        // mass0:/APPS/minecraft) even when asset discovery falls back to a
+        // conventional install folder. Keep saves beside the ELF in that case.
+        const std::string launchDir = Ps2Assets::launchDir();
         const std::string installDir = Ps2Assets::installDir();
-        if (installIsWritable && !installDir.empty())
+        if (isMassStoragePath(launchDir))
+            state().displayRoot = launchDir;
+        else if (Ps2Assets::source() == Ps2Assets::Source::UsbMass && !installDir.empty())
             state().displayRoot = installDir;
         else
             state().displayRoot = PlatformStorage::join(state().massRoot, Ps2AssetLocator::INSTALL_FOLDER);

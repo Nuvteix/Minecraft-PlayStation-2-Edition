@@ -14,7 +14,7 @@ GuiWorldStorage::GuiWorldStorage(GuiScreen *parent, GameSettings *settings)
 void GuiWorldStorage::initGui()
 {
     controlList.push_back(new GuiButton(1, width / 2 - 100, 108, uiText("Memory Card")));
-    controlList.push_back(new GuiButton(2, width / 2 - 100, 132, uiText("USB Drive")));
+    controlList.push_back(new GuiButton(2, width / 2 - 100, 132, uiText("USB/MX4SIO")));
     controlList.push_back(new GuiButton(0, width / 2 - 100, height - 42, uiText("Back")));
     controlList[0]->enabled = mc->theWorld == nullptr;
     controlList[1]->enabled = mc->theWorld == nullptr;
@@ -32,7 +32,7 @@ void GuiWorldStorage::actionPerformed(GuiButton *b)
     {
         mc->displayGuiScreen(new GuiStorageMessage(this, settings,
             target == Ps2SaveStorage::Target::MassStorage
-                ? "USB Drive unavailable. Connect the drive and try again."
+                ? "USB/MX4SIO unavailable. Connect the device and try again."
                 : "Memory Card unavailable. Insert a formatted card and try again."));
         return;
     }

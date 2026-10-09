@@ -132,9 +132,15 @@ GuiLoadModsList::GuiLoadModsList(GuiScreen *parent, Source source)
     }
     else
     {
+#ifdef PS2_PLATFORM
+        screenTitle = uiText("Available Mods (USB/MX4SIO)");
+        emptyMessage1 = uiText("No .ochpack packages found on USB/MX4SIO.");
+        emptyMessage2 = uiText("Place .ochpack files in the 'mods' folder beside the ELF.");
+#else
         screenTitle = uiText("Available Mods (USB Storage)");
         emptyMessage1 = uiText("No .ochpack packages found on USB storage.");
         emptyMessage2 = uiText("Checked: mass:/ and mass:/mods/. Ensure USB is connected.");
+#endif
     }
 }
 
@@ -155,6 +161,9 @@ void GuiLoadModsList::scanPacks()
     if (loadSource == Source::Device)
     {
 #ifdef PS2_PLATFORM
+        const std::string launchDir = Ps2Assets::launchDir();
+        if (!launchDir.empty())
+            scanDirs.push_back(PlatformStorage::join(launchDir, "mods"));
         std::string inst = Ps2Assets::installDir();
         debugLogs.push_back("installDir: '" + inst + "'");
         if (!inst.empty())
@@ -178,6 +187,14 @@ void GuiLoadModsList::scanPacks()
     }
     else
     {
+#ifdef PS2_PLATFORM
+        const std::string launchDir = Ps2Assets::launchDir();
+        if (!launchDir.empty())
+            scanDirs.push_back(PlatformStorage::join(launchDir, "mods"));
+        const std::string installDir = Ps2Assets::installDir();
+        if (!installDir.empty())
+            scanDirs.push_back(PlatformStorage::join(installDir, "mods"));
+#endif
         scanDirs.push_back("mass:/OptiCraftHeritage/mods");
         scanDirs.push_back("mass:/mods");
         scanDirs.push_back("mass:/MODS");

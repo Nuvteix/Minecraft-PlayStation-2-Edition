@@ -25,7 +25,11 @@ void GuiLoadSkinsMenu::initGui()
     const int_t startY = height / 4 + 30;
 
     controlList.push_back(new GuiButton(2, centerX, startY, btnW, btnH, "Load from Device (Recommended)"));
+#ifdef PS2_PLATFORM
+    controlList.push_back(new GuiButton(1, centerX, startY + 28, btnW, btnH, "Load from USB/MX4SIO"));
+#else
     controlList.push_back(new GuiButton(1, centerX, startY + 28, btnW, btnH, "Load from USB Storage"));
+#endif
     controlList.push_back(new GuiButton(3, centerX, startY + 70, btnW, btnH, "Back"));
 }
 

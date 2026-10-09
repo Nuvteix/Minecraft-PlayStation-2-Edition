@@ -116,6 +116,11 @@ std::string installDir()
     return parent;
 }
 
+std::string launchDir()
+{
+    return Ps2AssetLocator::launchDirectory();
+}
+
 std::string assetDir()
 {
     ensureResolved();

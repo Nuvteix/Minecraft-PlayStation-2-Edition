@@ -24,7 +24,11 @@ void GuiLoadModsMenu::initGui()
     int_t startY = height / 4 + 30;
 
     controlList.push_back(new GuiButton(1, centerX, startY, btnW, btnH, uiText("Load from Device")));
+#ifdef PS2_PLATFORM
+    controlList.push_back(new GuiButton(2, centerX, startY + 28, btnW, btnH, uiText("Load from USB/MX4SIO")));
+#else
     controlList.push_back(new GuiButton(2, centerX, startY + 28, btnW, btnH, uiText("Load from USB")));
+#endif
     controlList.push_back(new GuiButton(3, centerX, startY + 70, btnW, btnH, uiText("Back")));
 }
 
