@@ -825,6 +825,10 @@ void GuiIngame::renderGameOverlay(float_t partialTick, bool showDebug, int_t mou
 	// [FIX DEFENSIVO] Verificación contra nullptr en mc->playerController antes de consultar shouldDrawHUD()
 	if (mc->playerController != nullptr && mc->playerController->shouldDrawHUD())
 	{
+		// Third-person entity rendering may leave the player skin bound. The
+		// status HUD uses the icons atlas, so bind it explicitly rather than
+		// inheriting whichever world texture was last rendered.
+		renderBindTexture(mc->renderEngine->getTexture("/gui/icons.png"));
 #if PLATFORM_PC_LEGACY
 		pcLegacyRenderPlayerStatusHud(sw, hudHeight);
 #elif defined(PS2_PLATFORM)
