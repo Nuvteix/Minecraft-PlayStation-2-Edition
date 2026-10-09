@@ -364,7 +364,7 @@
 // cubes participate as occluders; all special or uncertain blocks are treated as
 // open. A false negative only draws extra terrain, while a false positive is
 // structurally avoided.
-#define PS2_CPU_SECTION_OCCLUSION 0
+#define PS2_CPU_SECTION_OCCLUSION 1
 
 // Hard wall-clock ceiling on meshing per frame, in milliseconds, checked
 // between renderers. PS2_CHUNK_BUILD_BLOCKS_PER_STEP bounds a step by BLOCK
