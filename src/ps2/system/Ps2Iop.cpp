@@ -47,6 +47,22 @@ int __fileXio_id = -1;
 namespace
 {
 
+void resetIopForElfHandoff()
+{
+    MC_LOG_INFO("platform", "[PS2] resetting IOP to clear launcher driver state\n");
+    while (!SifIopReset(nullptr, 0))
+    {
+        MC_LOG_WARN("platform", "[PS2] IOP reset request failed; retrying\n");
+        DelayThread(100000);
+    }
+
+    while (!SifIopSync())
+        DelayThread(1000);
+
+    SifInitRpc(0);
+    MC_LOG_INFO("platform", "[PS2] IOP reset complete; RPC restarted\n");
+}
+
 bool fileXioServerAvailable()
 {
     SifRpcClientData_t client = {};
@@ -180,6 +196,12 @@ void initFileServices()
     static bool initialized = false;
     if (initialized)
         return;
+
+    // Launchers can leave IOP filesystem and mass-storage modules in a state
+    // that accepts path probes but stalls on real file reads. The ELF is
+    // already loaded into EE memory, so reset the IOP and load our own drivers
+    // from the embedded IRXs instead of inheriting the launcher's stack.
+    resetIopForElfHandoff();
 
     SifLoadFileInit();
     sbv_patch_enable_lmb();
