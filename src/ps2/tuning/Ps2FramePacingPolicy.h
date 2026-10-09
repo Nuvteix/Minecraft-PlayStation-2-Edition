@@ -4,9 +4,18 @@
 
 namespace Ps2FramePacingPolicy
 {
-inline int fieldsPerFrame(int fieldHz, int targetFps)
+inline int fieldsPerFrame(int fieldHz, int targetFps, int &fieldRemainder)
 {
-    int fields = (fieldHz + targetFps / 2) / targetFps;
+    if (targetFps <= 0)
+        return 1;
+
+    int fields = fieldHz / targetFps;
+    fieldRemainder += fieldHz % targetFps;
+    if (fieldRemainder >= targetFps)
+    {
+        ++fields;
+        fieldRemainder -= targetFps;
+    }
     if (fields < 1)
         fields = 1;
     if (fields > 4)

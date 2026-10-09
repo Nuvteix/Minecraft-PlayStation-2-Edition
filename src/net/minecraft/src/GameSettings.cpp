@@ -112,6 +112,7 @@ void GameSettings::setDefaults()
 	limitFramerate = 1;
 #ifdef PS2_PLATFORM
 	fancyGraphics = false;
+	limitFramerate = 30;
 #else
 	fancyGraphics = true;
 #endif
@@ -602,7 +603,7 @@ void GameSettings::setOptionValue(const EnumOptions *enumoptions, int_t i)
 	if (enumoptions == EnumOptions::FRAMERATE_LIMIT)
 	{
 #if PLATFORM_PS2
-		limitFramerate = limitFramerate == 30 ? 60 : 30;
+		limitFramerate = 30;
 #else
 		limitFramerate = (limitFramerate + i + 3) % 3;
 #endif
@@ -1004,7 +1005,7 @@ std::string GameSettings::getKeyBinding(const EnumOptions *enumoptions)
 	if (enumoptions == EnumOptions::FRAMERATE_LIMIT)
 	{
 #if PLATFORM_PS2
-		return s + (limitFramerate == 30 ? "30 FPS" : "60 FPS");
+		return s + "30 FPS";
 #else
 		return s + translateKey(LIMIT_FRAMERATES[limitFramerate]);
 #endif

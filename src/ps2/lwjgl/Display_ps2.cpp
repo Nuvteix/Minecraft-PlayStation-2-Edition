@@ -772,14 +772,12 @@ void swapBuffers()
     // the old fallback paid every configured field even if the frame had already
     // overrun its budget. The hardware clock is monotonic and already backs the
     // renderer's per-frame budgets.
-    int targetFps = PS2_TARGET_FPS;
-    Minecraft *minecraft = Minecraft::getMinecraft();
-    if (minecraft != nullptr && minecraft->gameSettings != nullptr &&
-        (minecraft->gameSettings->limitFramerate == 30 || minecraft->gameSettings->limitFramerate == 60))
-        targetFps = minecraft->gameSettings->limitFramerate;
+    const int targetFps = PS2_TARGET_FPS;
 
     const int fieldHz = (gsGlobal->Mode == GS_MODE_PAL) ? 50 : 60;
-    const int fieldsPerFrame = Ps2FramePacingPolicy::fieldsPerFrame(fieldHz, targetFps);
+    static int s_fieldRemainder = 0;
+    const int fieldsPerFrame = Ps2FramePacingPolicy::fieldsPerFrame(
+        fieldHz, targetFps, s_fieldRemainder);
 
     static std::uint64_t s_lastPresentUs = 0;
     const std::uint64_t periodUs = Ps2FramePacingPolicy::targetPeriodUs(targetFps);

@@ -282,8 +282,10 @@ void GuiIngameMenu::drawScreen(int_t mouseX, int_t mouseY, float_t partialTick)
 		// Java's very dark 0xC0/0xD0 default overlay.
 		drawGradientRect(0, 0, width, height, legacyPauseOverlayTopColor(), legacyPauseOverlayBottomColor());
 
-		bool saving = !mc->theWorld->isSafeToSave(updateCounter2++);
-		if (saving || updateCounter < 20)
+		bool saving = false;
+		if (!mc->isMultiplayerWorld())
+			saving = !mc->theWorld->isSafeToSave(updateCounter2++);
+		if (!mc->isMultiplayerWorld() && (saving || updateCounter < 20))
 		{
 			float_t f1 = ((float_t)(updateCounter % 10) + partialTick) / 10.0f;
 			f1 = MathHelper::sin(f1 * 3.1415927f * 2.0f) * 0.2f + 0.8f;
@@ -298,8 +300,10 @@ void GuiIngameMenu::drawScreen(int_t mouseX, int_t mouseY, float_t partialTick)
 	}
 
 	drawDefaultBackground();
-	bool saving = !mc->theWorld->isSafeToSave(updateCounter2++);
-	if (saving || updateCounter < 20)
+	bool saving = false;
+	if (!mc->isMultiplayerWorld())
+		saving = !mc->theWorld->isSafeToSave(updateCounter2++);
+	if (!mc->isMultiplayerWorld() && (saving || updateCounter < 20))
 	{
 		float_t f1 = ((float_t)(updateCounter % 10) + partialTick) / 10.0f;
 		f1 = MathHelper::sin(f1 * 3.1415927f * 2.0f) * 0.2f + 0.8f;

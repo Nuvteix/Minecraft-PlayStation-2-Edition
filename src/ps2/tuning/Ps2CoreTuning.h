@@ -100,10 +100,8 @@
 #define PS2_DISABLE_RUNTIME_AUTOSAVE 1
 #define PS2_SKIP_NEW_WORLD_FULL_SAVE 1
 
-// Fallback presentation cap. The in-game PS2 option selects 30 or 60 FPS;
-// prefer 60 before settings load and for any invalid/legacy value so startup
-// and migrated configurations do not silently add a 30 FPS input delay.
-#define PS2_TARGET_FPS 60
+// PS2 uses a fixed 30 FPS presentation cap.
+#define PS2_TARGET_FPS 30
 
 // Tessellator backend facts. The GS path consumes native quads and the console
 // heap cannot afford the desktop 8 MB scratch buffer. Keep these values in the

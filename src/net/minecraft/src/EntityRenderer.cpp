@@ -1369,10 +1369,10 @@ void EntityRenderer::updateCameraAndRender(float partialTicks)
     int scaledMouseX = (mouseX * scaledWidth) / mc->displayWidth;
     int scaledMouseY = (mouseY * scaledHeight) / mc->displayHeight;
     
-    // The PS2 exposes explicit 30/60 FPS caps; other platforms retain the
-    // legacy Max/Balanced/Power Saver values.
+    // PS2 uses a fixed 30 FPS cap; other platforms retain the legacy
+    // Max/Balanced/Power Saver values.
 #if PLATFORM_PS2
-    const long limitFps = mc->gameSettings->limitFramerate == 30 ? 30L : 60L;
+    const long limitFps = 30L;
 #else
     char fpsLimitChar = '\0';
     if (mc->gameSettings->limitFramerate == 1)
@@ -1444,12 +1444,10 @@ void EntityRenderer::updateCameraAndRender(float partialTicks)
         
         setupOverlayRendering();
         
-    #if PLATFORM_PS2
-        if (mc->gameSettings->limitFramerate == 30 || mc->gameSettings->limitFramerate == 60)
-    #else
+#if !PLATFORM_PS2
         if (mc->gameSettings->limitFramerate == 2)
-    #endif
         {
+#endif
             int64_t sleepTime = (field_28133_I + (int64_t)(1000000000LL / limitFps) - 
                                 std::chrono::duration_cast<std::chrono::nanoseconds>(
                                     std::chrono::steady_clock::now().time_since_epoch()).count()) / 1000000LL;
@@ -1463,7 +1461,9 @@ void EntityRenderer::updateCameraAndRender(float partialTicks)
             {
                 PlatformCompat::delay((uint32_t)sleepTime);
             }
+#if !PLATFORM_PS2
         }
+#endif
         
         field_28133_I = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now().time_since_epoch()).count();

@@ -35,7 +35,7 @@ const PlatformGameDefaults& platformGameDefaults()
         d.particleSetting = 0;
 #endif
 #if PLATFORM_PS2
-        d.limitFramerate = 60;
+        d.limitFramerate = 30;
 #elif PLATFORM_WII
         // Balanced: the GX swap already waits for vsync (gx_wii.cpp), so the
         // Power saver sleep before the swap only pushes frames to the next

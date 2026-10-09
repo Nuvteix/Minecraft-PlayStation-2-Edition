@@ -59,17 +59,19 @@ void Timer::updateTimer()
 		d1 = 1.0;
 	}
 	elapsedPartialTicks += d1 * (double)timerSpeed * (double)ticksPerSecond;
+#if defined(PS2_PLATFORM)
+	// Keep a small amount of catch-up work when rendering falls below 20 FPS,
+	// but discard larger backlogs so a slow frame cannot start a tick spiral.
+	if (elapsedPartialTicks > 2.0)
+		elapsedPartialTicks = 2.0;
+#endif
 	elapsedTicks = JavaArithmetic::floatToInt(elapsedPartialTicks);
 	elapsedPartialTicks -= elapsedTicks;
 #if defined(PS2_PLATFORM)
-	// Vanilla can try to catch up by running up to 10 game ticks in one rendered
-	// frame. On PS2 that creates a death spiral while chunks/worldgen are slow:
-	// one long frame queues 10 expensive ticks, those ticks make the next frame
-	// even longer, and the player sees multi-second freezes. Prefer temporary
-	// slow-motion over unbounded catch-up stalls.
-	if (elapsedTicks > 1)
+	// Never let a single rendered frame run more than two simulation ticks.
+	if (elapsedTicks > 2)
 	{
-		elapsedTicks = 1;
+		elapsedTicks = 2;
 	}
 #elif defined(WII_PLATFORM)
 	// Bound catch-up work so one slow chunk or mesh frame cannot queue enough

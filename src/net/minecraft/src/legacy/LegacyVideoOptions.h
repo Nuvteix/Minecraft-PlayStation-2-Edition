@@ -27,5 +27,4 @@ private:
     LegacyOptionCheckbox *fogCheckbox;
     // Wii only: the EFB->XFB deflicker filter; null elsewhere.
     LegacyOptionCheckbox *deflickerCheckbox;
-    GuiButton *framerateButton;
 };

@@ -34,7 +34,9 @@ void GuiVideoSettings::initGui()
 		EnumOptions::GRAPHICS,        // k
 		EnumOptions::RENDER_DISTANCE_FINE, // OptiFine fine-distance slider
 		EnumOptions::AO_LEVEL,        // OptiFine smooth-lighting slider
+#if !PLATFORM_PS2
 		EnumOptions::FRAMERATE_LIMIT, // i
+#endif
 		EnumOptions::ANAGLYPH,        // g
 		EnumOptions::VIEW_BOBBING,    // f
 		EnumOptions::GUI_SCALE,       // m
