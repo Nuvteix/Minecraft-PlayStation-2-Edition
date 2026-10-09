@@ -33,6 +33,14 @@ pwsh -File .\build_windows.ps1 wii -Release -Jobs 4
 pwsh -File .\build_windows.ps1 ps2
 ```
 
+## OPL and MX4SIO
+
+OPL exposes MX4SIO through its BDM filesystem as a numbered mass-storage device
+(usually `mass0:/`). Enable MX4SIO in OPL's BDM device settings, copy the PS2
+package folder to the SD card, then launch `OptiCraft.elf` from that folder as an
+OPL application. Keep the accompanying `data/` directory beside the ELF. The
+game can then read assets and save worlds/configuration on the same device.
+
 ---
 
 ## Disclaimer!!!

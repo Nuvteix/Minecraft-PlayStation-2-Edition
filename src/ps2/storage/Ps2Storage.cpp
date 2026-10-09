@@ -58,17 +58,12 @@ MassStorageProbe probeMassStorage(bool includeUnits)
         return result;
     }
 
-    if (slashError == ENODEV && deviceError == ENODEV)
-    {
-        result.driverAvailable = false;
-        return result;
-    }
-
-    if (!includeUnits)
-        return result;
-
     char root[16];
-    for (int unit = 0; unit < 10; ++unit)
+    // OPL's BDM filesystem, including MX4SIO, exposes numbered roots such as
+    // mass0:/ rather than the unnumbered mass:/ alias. Check unit zero on the
+    // fast probe too, before treating ENODEV on the alias as no USB driver.
+    const int unitLimit = includeUnits ? 10 : 1;
+    for (int unit = 0; unit < unitLimit; ++unit)
     {
         std::snprintf(root, sizeof(root), "mass%d:/", unit);
         int error = 0;
@@ -78,6 +73,9 @@ MassStorageProbe probeMassStorage(bool includeUnits)
             return result;
         }
     }
+
+    if (!includeUnits && slashError == ENODEV && deviceError == ENODEV)
+        result.driverAvailable = false;
     return result;
 }
 
