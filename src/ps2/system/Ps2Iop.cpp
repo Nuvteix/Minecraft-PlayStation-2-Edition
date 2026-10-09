@@ -135,7 +135,12 @@ void initFileServices(int argc, char** argv)
     }
 
     Ps2Storage::setFileIoReady();
-    ensureRomModule(RomModule::Sio2);
+    const Ps2Storage::MassStorageProbe mass = Ps2Storage::probeMassStorage(true);
+    if (mass.root.empty())
+        ensureRomModule(RomModule::Sio2);
+    else
+        MC_LOG_INFO("platform", "[PS2] preserving mounted storage stack at %s; not reloading SIO2MAN\n",
+                    mass.root.c_str());
     initialized = true;
 }
 
