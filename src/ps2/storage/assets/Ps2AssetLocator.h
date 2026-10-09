@@ -7,6 +7,9 @@
 
 namespace Ps2AssetLocator
 {
+    inline constexpr char OPL_APP_FOLDER[] = "APPS/minecraft";
+    inline constexpr char BUILD_OUTPUT_FOLDER[] = "MCBETA";
+
     // The conventional install folder name. Still tried by name on every
     // device, because asking for one exact path is the only lookup that works
     // on all of them -- but no longer the only name that can work, since the
