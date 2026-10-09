@@ -8,6 +8,7 @@
 
 #include <delaythread.h>
 #include <kernel.h>
+#include <loadfile.h>
 
 extern "C" {
 #ifdef PS2_REMOTE_DEBUG
@@ -20,6 +21,12 @@ extern "C" {
 int ps2ipc_ps2ip_getconfig(char *netif_name, t_ip_info *ip_info);
 #else
 #include <ps2ip.h>
+extern unsigned char ps2dev9_irx[];
+extern unsigned int size_ps2dev9_irx;
+extern unsigned char netman_irx[];
+extern unsigned int size_netman_irx;
+extern unsigned char smap_irx[];
+extern unsigned int size_smap_irx;
 #endif
 }
 
@@ -33,25 +40,33 @@ std::atomic_bool s_ready{false};
 bool s_stackInitialized = false;
 std::uint32_t s_localAddressNetworkOrder = 0;
 
-void loadNetworkModules()
+#if defined(PS2_ENABLE_NETWORK) && !defined(PS2_REMOTE_DEBUG)
+bool loadEmbeddedNetworkModule(const char* name, unsigned char* data, unsigned int size)
 {
-    // Modern EE ps2ip keeps lwIP on the EE. Only the Ethernet driver and
-    // NETMAN bridge are required on the IOP; ps2ip-nm.irx is intentionally not
-    // loaded because that is the alternative IOP-side TCP/IP stack.
-    const int dev9 = Ps2IrxLoader::load("irx/ps2dev9.irx", "host:ps2dev9.irx");
-    const int netman = Ps2IrxLoader::load("irx/netman.irx", "host:netman.irx");
-    const int smap = Ps2IrxLoader::load("irx/smap.irx", "host:smap.irx");
-
-    // A loader such as ps2link/OPL may already have one or more of these IRXs
-    // resident, in which case a duplicate load can return an error. Do not fail
-    // solely on the loader return values; the sm0 interface check below is the
-    // definitive test that the Ethernet path came up.
-    MC_LOG_INFO("network", "[PS2] IRX network load: dev9=%d netman=%d smap=%d\n",
-                dev9, netman, smap);
+    int moduleResult = 1;
+    const int result = SifExecModuleBuffer(data, static_cast<int>(size), 0, nullptr, &moduleResult);
+    MC_LOG_INFO("network", "[PS2] embedded %s -> load=%d start=%d\n",
+                name, result, moduleResult);
+    return result >= 0 && moduleResult >= 0 && moduleResult != 1;
 }
+
+bool loadNetworkModules()
+{
+    // The EE-side ps2ip stack needs the Ethernet driver, NETMAN bridge, and
+    // SMAP Ethernet driver on the IOP. Load these from the ELF so network
+    // availability does not depend on optional data/irx files on USB/MX4SIO.
+    const bool dev9 = loadEmbeddedNetworkModule("ps2dev9", ps2dev9_irx, size_ps2dev9_irx);
+    const bool netman = loadEmbeddedNetworkModule("netman", netman_irx, size_netman_irx);
+    const bool smap = loadEmbeddedNetworkModule("smap", smap_irx, size_smap_irx);
+    return dev9 && netman && smap;
+}
+#endif
 
 bool startStackAndDhcp()
 {
+#ifdef NO_NETWORK
+    return false;
+#else
     if (s_stackInitialized)
         return true;
 
@@ -94,8 +109,12 @@ bool startStackAndDhcp()
 
     McLog::flush();
     return true;
-#else
-    loadNetworkModules();
+#elif defined(PS2_ENABLE_NETWORK)
+    if (!loadNetworkModules())
+    {
+        MC_LOG_ERROR("network", "[PS2] failed to load embedded Ethernet IOP modules\n");
+        return false;
+    }
 
     // ps2ipInit initializes NETMAN itself, then registers the EE-side lwIP
     // stack as sm0. Calling NetManInit a second time here is unnecessary and
@@ -142,6 +161,9 @@ bool startStackAndDhcp()
     MC_LOG_INFO("network", "[PS2] DHCP client started\n");
     McLog::flush();
     return true;
+#else
+    return false;
+#endif
 #endif
 }
 }
