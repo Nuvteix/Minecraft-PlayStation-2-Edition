@@ -276,7 +276,9 @@ void RenderLiving::preRenderCallback(EntityLiving* entityliving, float f) {
 }
 
 void RenderLiving::passSpecialRender(EntityLiving* entityliving, double d, double d1, double d2) {
-    if (Minecraft::isDebugInfoEnabled()) {
+    // Debug entity IDs are useful on desktop, but look like random mob
+    // nametags in the PS2 debug overlay and add extra text rendering.
+    if (Minecraft::isDebugInfoEnabled() && !PLATFORM_PS2) {
         renderLivingLabel(entityliving, std::to_string(entityliving->entityId), d, d1, d2, 64);
     }
 }
