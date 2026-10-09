@@ -6,7 +6,9 @@
 
 #include <cstdio>
 
+#include <delaythread.h>
 #include <loadfile.h>
+#include <sifrpc.h>
 
 #define NEWLIB_PORT_AWARE
 #include <fileXio_rpc.h>
@@ -20,6 +22,20 @@ int __fileXio_id = -1;
 
 namespace
 {
+
+bool fileXioServerAvailable()
+{
+    SifRpcClientData_t client = {};
+    for (int waited = 0; waited < 1000; waited += 10)
+    {
+        if (sceSifBindRpc(&client, FILEXIO_IRX, 0) < 0)
+            return false;
+        if (client.server)
+            return true;
+        DelayThread(10000);
+    }
+    return false;
+}
 
 const char* romModulePath(Ps2Iop::RomModule module)
 {
@@ -72,12 +88,17 @@ void initFileServices()
         return;
 
     SifLoadFileInit();
-    const int fileXioResult = fileXioInit();
-    if (fileXioResult < 0)
-        MC_LOG_WARN("platform", "[PS2] fileXioInit failed: %d; OPL BDM storage may be unavailable\n",
-                    fileXioResult);
+    if (!fileXioServerAvailable())
+        MC_LOG_WARN("platform", "[PS2] FILEXIO RPC server unavailable; skipping fileXioInit\n");
     else
-        MC_LOG_INFO("platform", "[PS2] fileXio initialized for POSIX filesystem access\n");
+    {
+        const int fileXioResult = fileXioInit();
+        if (fileXioResult < 0)
+            MC_LOG_WARN("platform", "[PS2] fileXioInit failed: %d; OPL BDM storage may be unavailable\n",
+                        fileXioResult);
+        else
+            MC_LOG_INFO("platform", "[PS2] fileXio initialized for POSIX filesystem access\n");
+    }
 
     Ps2Storage::setFileIoReady();
     ensureRomModule(RomModule::Sio2);
