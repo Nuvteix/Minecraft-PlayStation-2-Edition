@@ -366,6 +366,13 @@
 // structurally avoided.
 #define PS2_CPU_SECTION_OCCLUSION 1
 
+// In an enclosed overworld view, fade and stop submitting distant cave
+// sections. Open cave branches are technically visible but costly to render;
+// keeping the cutoff close avoids drawing them far beyond the nearby area.
+#define PS2_UNDERGROUND_RENDER_DISTANCE 12.0f
+#define PS2_UNDERGROUND_FOG_START 6.0f
+#define PS2_UNDERGROUND_FOG_END 12.0f
+
 // Hard wall-clock ceiling on meshing per frame, in milliseconds, checked
 // between renderers. PS2_CHUNK_BUILD_BLOCKS_PER_STEP bounds a step by BLOCK
 // COUNT, which is only a proxy for time: measured 2026-07-28 the same 512-block

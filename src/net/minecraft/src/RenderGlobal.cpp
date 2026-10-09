@@ -123,6 +123,20 @@ inline void applyPs2LegacyAtmosphereRgb(Minecraft *mc, float &red, float &green,
 }
 
 #if PLATFORM_PS2
+inline bool ps2IsUndergroundView(World *world, EntityLiving *viewer)
+{
+	if (world == nullptr || viewer == nullptr || world->worldProvider == nullptr ||
+		world->worldProvider->getWorldHasNoSky())
+	{
+		return false;
+	}
+
+	const int_t x = MathHelper::floor_double(viewer->posX);
+	const int_t y = MathHelper::floor_double(viewer->posY + viewer->getEyeHeight());
+	const int_t z = MathHelper::floor_double(viewer->posZ);
+	return y >= 0 && y < WorldHeight::HEIGHT && !world->canBlockSeeTheSky(x, y, z);
+}
+
 inline bool ps2SectionBeyondFog(WorldRenderer *renderer,
 	float eyeX, float eyeY, float eyeZ, float distance)
 {
@@ -612,6 +626,11 @@ void RenderGlobal::renderEntities(Vec3D *vec3d, ICamera *icamera, float f)
 	countEntitiesHidden = 0;
 
 	EntityLiving *entityliving = mc->renderViewEntity;
+#if PLATFORM_PS2
+	const bool ps2UndergroundView = ps2IsUndergroundView(worldObj, entityliving);
+	const float ps2UndergroundDistanceSq =
+		PS2_UNDERGROUND_RENDER_DISTANCE * PS2_UNDERGROUND_RENDER_DISTANCE;
+#endif
 
 	RenderManager::renderPosX = entityliving->lastTickPosX + (entityliving->posX - entityliving->lastTickPosX) * (double)f;
 	RenderManager::renderPosY = entityliving->lastTickPosY + (entityliving->posY - entityliving->lastTickPosY) * (double)f;
@@ -641,6 +660,16 @@ void RenderGlobal::renderEntities(Vec3D *vec3d, ICamera *icamera, float f)
 		Entity *entity = worldObj->weatherEffects[i];
 		if (entity == nullptr || entity->isDead)
 			continue;
+#if PLATFORM_PS2
+		if (ps2UndergroundView)
+		{
+			const float dx = static_cast<float>(entity->posX - TileEntityRenderer::staticPlayerX);
+			const float dy = static_cast<float>(entity->posY - TileEntityRenderer::staticPlayerY);
+			const float dz = static_cast<float>(entity->posZ - TileEntityRenderer::staticPlayerZ);
+			if (dx * dx + dy * dy + dz * dz > ps2UndergroundDistanceSq)
+				continue;
+		}
+#endif
 		countEntitiesRendered++;
 		if (entity->isInRangeToRenderVec3D(vec3d))
 		{
@@ -714,6 +743,19 @@ void RenderGlobal::renderEntities(Vec3D *vec3d, ICamera *icamera, float f)
 			reportEntity(entity1, "range");
 			continue;
 		}
+#if PLATFORM_PS2
+		if (ps2UndergroundView && entity1 != mc->renderViewEntity)
+		{
+			const float dx = static_cast<float>(entity1->posX - TileEntityRenderer::staticPlayerX);
+			const float dy = static_cast<float>(entity1->posY - TileEntityRenderer::staticPlayerY);
+			const float dz = static_cast<float>(entity1->posZ - TileEntityRenderer::staticPlayerZ);
+			if (dx * dx + dy * dy + dz * dz > ps2UndergroundDistanceSq)
+			{
+				reportEntity(entity1, "underground-distance");
+				continue;
+			}
+		}
+#endif
 		if (!entity1->ignoreFrustumCheck && !icamera->isBoundingBoxInFrustum(entity1->boundingBox))
 		{
 #if PLATFORM_PS2 && MC_LOG_LEVEL > 2
@@ -819,6 +861,21 @@ void RenderGlobal::renderEntities(Vec3D *vec3d, ICamera *icamera, float f)
 		}
 
 #if PLATFORM_PS2
+		if (ps2UndergroundView)
+		{
+			const float dx = static_cast<float>(tileEntity->xCoord) + 0.5f -
+				static_cast<float>(TileEntityRenderer::staticPlayerX);
+			const float dy = static_cast<float>(tileEntity->yCoord) + 0.5f -
+				static_cast<float>(TileEntityRenderer::staticPlayerY);
+			const float dz = static_cast<float>(tileEntity->zCoord) + 0.5f -
+				static_cast<float>(TileEntityRenderer::staticPlayerZ);
+			if (dx * dx + dy * dy + dz * dz > ps2UndergroundDistanceSq)
+			{
+				++k;
+				continue;
+			}
+		}
+
 		// Block entities do not have entity-style frustum bounds. Use a generous
 		// local box so extended models (signs, pistons, etc.) remain visible near
 		// the edge of the view, then reject sections hidden by opaque terrain.
@@ -1521,6 +1578,11 @@ int_t RenderGlobal::renderSortedRenderers(int_t i, int_t j, int_t k, double d)
 		else if (mc != nullptr && mc->theWorld != nullptr && mc->theWorld->worldProvider != nullptr &&
 			!mc->theWorld->worldProvider->isNether && !Config::isFogOff())
 		{
+			const int_t viewX = MathHelper::floor_double(entityliving->posX);
+			const int_t viewY = MathHelper::floor_double(entityliving->posY + entityliving->getEyeHeight());
+			const int_t viewZ = MathHelper::floor_double(entityliving->posZ);
+			const bool undergroundView = viewY >= 0 && viewY < WorldHeight::HEIGHT &&
+				!mc->theWorld->canBlockSeeTheSky(viewX, viewY, viewZ);
 			// On the PS2 fixed-grid renderer, EntityRenderer clamps normal
 			// linear fog to the loaded edge. Sections whose entire AABB is past
 			// that edge are fully fogged already, so submitting their expensive
@@ -1529,7 +1591,9 @@ int_t RenderGlobal::renderSortedRenderers(int_t i, int_t j, int_t k, double d)
 			// passes. This matters in villages as well as oceans: pass 0 otherwise
 			// spends several milliseconds drawing sections already replaced by fog.
 			ps2CullTerrainByFog = true;
-			ps2TerrainCullDistance = static_cast<float>(PLATFORM_VISIBLE_CHUNK_RADIUS * 16);
+			ps2TerrainCullDistance = undergroundView
+				? PS2_UNDERGROUND_RENDER_DISTANCE
+				: static_cast<float>(PLATFORM_VISIBLE_CHUNK_RADIUS * 16);
 		}
 
 		if (ps2CullTerrainByFog)

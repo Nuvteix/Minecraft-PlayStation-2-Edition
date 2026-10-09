@@ -57,6 +57,7 @@
 #include "EntityRainFX.h"
 #include "Tessellator.h"
 #include "WorldProvider.h"
+#include "WorldHeight.h"
 #include "IChunkProvider.h"
 #include "OpenGlHelper.h"
 #include "java/BufferedImage.h"
@@ -2786,6 +2787,18 @@ void EntityRenderer::setupFog(int fogMode, float partialTicks)
     if (viewpointBlockId > 0 && viewpointBlockId < Block::BLOCK_REGISTRY_SIZE && Block::blocksList[viewpointBlockId] != nullptr)
         viewpointMaterial = Block::blocksList[viewpointBlockId]->blockMaterial;
 
+#if PLATFORM_PS2
+    const int_t viewX = MathHelper::floor_double(entityliving->posX);
+    const int_t viewY = MathHelper::floor_double(entityliving->posY + entityliving->getEyeHeight());
+    const int_t viewZ = MathHelper::floor_double(entityliving->posZ);
+    const bool undergroundView = mc->theWorld != nullptr &&
+        mc->theWorld->worldProvider != nullptr &&
+        !mc->theWorld->worldProvider->getWorldHasNoSky() &&
+        !Config::isFogOff() &&
+        viewY >= 0 && viewY < WorldHeight::HEIGHT &&
+        !mc->theWorld->canBlockSeeTheSky(viewX, viewY, viewZ);
+#endif
+
     if (entityliving->isPotionActive(Potion::blindness))
     {
         float fogDistance = 5.0f;
@@ -2898,6 +2911,14 @@ void EntityRenderer::setupFog(int fogMode, float partialTicks)
             const float loadedEdge = (float)(PLATFORM_VISIBLE_CHUNK_RADIUS * 16);
             fogEnd = loadedEdge < effectiveFar ? loadedEdge : effectiveFar;
             fogStart = fogEnd * 0.55f;
+        }
+#endif
+
+#if PLATFORM_PS2
+        if (undergroundView && fogMode >= 0)
+        {
+            fogStart = PS2_UNDERGROUND_FOG_START;
+            fogEnd = PS2_UNDERGROUND_FOG_END;
         }
 #endif
 
