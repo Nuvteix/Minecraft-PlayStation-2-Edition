@@ -7,6 +7,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      diagnostics:
+        description: Build a diagnostic ELF with MC_LOG_LEVEL=2 (kept out of the nightly release)
+        type: boolean
+        required: false
+        default: false
   schedule:
     - cron: '0 3 * * *'
 
@@ -82,7 +88,7 @@ jobs:
           -DPS2_ENABLE_PERSPECTIVE_TEXTURES=ON
           -DPS2_RENDER_STATS=OFF
           -DPS2_ENABLE_VU1_TERRAIN=ON
-          -DMC_LOG_LEVEL=0
+          -DMC_LOG_LEVEL=${{ inputs.diagnostics && '2' || '0' }}
           -DCMAKE_C_COMPILER_LAUNCHER=ccache
           -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
@@ -94,7 +100,17 @@ jobs:
           mkdir -p dist
           cp bin/ps2/usb/MCBETA/OptiCraft.elf dist/OptiCraft-ps2.elf
 
+      - name: Upload diagnostic ELF
+        if: ${{ inputs.diagnostics }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: OptiCraft-ps2-diagnostic
+          path: dist/OptiCraft-ps2.elf
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Create or Update Nightly Release
+        if: ${{ !inputs.diagnostics }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: nightly
