@@ -33,19 +33,12 @@ namespace
 
 void displayBootstrapStatus(const char* message)
 {
-    // Display status on-screen at the bottom
-    const int screenHeight = Ps2Graphics::height();
-    const int y = screenHeight - 40;
-    Ps2BootText::draw(20, y, 100, message, 1.0f, Ps2BootRenderer::Color{255, 255, 255, 255});
-    
-    // Flush and display
-    auto* graphics = Ps2Graphics::context();
-    if (graphics)
-    {
-        gsKit_queue_exec(graphics);
-        gsKit_sync_flip(graphics);
-        gsKit_queue_reset(graphics->Os_Queue);
-    }
+    Ps2BootRenderer::setAlphaBlend(false);
+    Ps2BootRenderer::clear({0, 0, 0, 0x80});
+    Ps2BootText::draw(20, Ps2Graphics::height() - 40, 0xFFFF, message, 1.0f,
+                      {0xE8, 0xE8, 0xE8, 0x80});
+    Ps2BootRenderer::present();
+    Ps2BootRenderer::resetAlpha();
 }
 
 } // namespace
