@@ -63,7 +63,9 @@ void GuiSlotServer::drawSlot(int_t index, int_t x, int_t y, int_t, Tessellator *
     std::string playerCount;
     long_t lag = -2;
     bool polled = false;
+#ifndef PS2_PLATFORM
     bool shouldPoll = false;
+#endif
     {
         std::lock_guard<std::mutex> guard(server->stateMutex);
         name = server->name;
@@ -73,21 +75,20 @@ void GuiSlotServer::drawSlot(int_t index, int_t x, int_t y, int_t, Tessellator *
         lag = server->lag;
         polled = server->polled;
 #ifdef PS2_PLATFORM
-        constexpr int_t maxPollThreads = 1;
-        const long_t now = System::currentTimeMillis();
-        const bool retryDue = server->polled && server->lag == -1 &&
-                              server->nextPollTime > 0 && now >= server->nextPollTime;
+    // PS2 server pings currently run synchronously (there is no detached
+    // std::thread backend), so starting one while drawing this row can block
+    // or destabilize the render/input loop. Joining remains available from
+    // the selected server; only automatic status pings are disabled here.
+    polled = true;
+    lag = -1;
+    motd = "Status ping disabled";
 #else
         constexpr int_t maxPollThreads = 5;
         constexpr bool retryDue = false;
-#endif
         if ((!server->polled || retryDue) && GuiMultiplayer::getThreadsPending() < maxPollThreads)
         {
             server->polled = true;
             server->lag = -2;
-#ifdef PS2_PLATFORM
-            server->nextPollTime = 0;
-#endif
             server->motd.clear();
             server->playerCount.clear();
             polled = true;
@@ -96,13 +97,16 @@ void GuiSlotServer::drawSlot(int_t index, int_t x, int_t y, int_t, Tessellator *
             playerCount.clear();
             shouldPoll = true;
         }
+#endif
     }
 
+#ifndef PS2_PLATFORM
     if (shouldPoll)
     {
         GuiMultiplayer::incrementThreadsPending();
         ThreadPollServers::start(server);
     }
+#endif
 
     FontRenderer *font = parentGui->getFontRenderer();
     parentGui->drawString(font, name, x + 2, y + 1, 0xffffff);
@@ -126,7 +130,11 @@ void GuiSlotServer::drawSlot(int_t index, int_t x, int_t y, int_t, Tessellator *
         else if (lag < 600) iconRow = 2;
         else if (lag < 1000) iconRow = 3;
         else iconRow = 4;
+#ifdef PS2_PLATFORM
+        tooltip = "Ping disabled";
+#else
         tooltip = lag < 0 ? "(no connection)" : std::to_string(lag) + "ms";
+#endif
     }
     else
     {
