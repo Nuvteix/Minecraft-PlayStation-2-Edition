@@ -35,7 +35,7 @@ void displayBootstrapStatus(const char* message)
 {
     Ps2BootRenderer::setAlphaBlend(false);
     Ps2BootRenderer::clear({0, 0, 0, 0x80});
-    Ps2BootText::draw(20, Ps2Graphics::height() - 40, 0xFFFF, message, 1.0f,
+    Ps2BootText::draw(12, Ps2Graphics::height() - 48, 0xFFFF, message, 2.0f,
                       {0xE8, 0xE8, 0xE8, 0x80});
     Ps2BootRenderer::present();
     Ps2BootRenderer::resetAlpha();
