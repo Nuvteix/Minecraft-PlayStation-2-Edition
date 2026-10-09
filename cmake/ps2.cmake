@@ -378,6 +378,7 @@ target_link_directories(OptiCraft PRIVATE
 target_link_libraries(OptiCraft
     gskit dmakit dma graph
     patches pad mc vux kbd
+    fileXio
     $<$<BOOL:${PS2_ENABLE_SOUND}>:audsrv>
     z
     $<$<AND:$<BOOL:${PS2_ENABLE_NETWORK}>,$<BOOL:${PS2_REMOTE_DEBUG}>>:ps2ips>

@@ -8,6 +8,15 @@
 
 #include <loadfile.h>
 
+#define NEWLIB_PORT_AWARE
+#include <fileXio_rpc.h>
+
+extern "C"
+{
+int __iomanX_id = -1;
+int __fileXio_id = -1;
+}
+
 
 namespace
 {
@@ -63,6 +72,13 @@ void initFileServices()
         return;
 
     SifLoadFileInit();
+    const int fileXioResult = fileXioInit();
+    if (fileXioResult < 0)
+        MC_LOG_WARN("platform", "[PS2] fileXioInit failed: %d; OPL BDM storage may be unavailable\n",
+                    fileXioResult);
+    else
+        MC_LOG_INFO("platform", "[PS2] fileXio initialized for POSIX filesystem access\n");
+
     Ps2Storage::setFileIoReady();
     ensureRomModule(RomModule::Sio2);
     initialized = true;
