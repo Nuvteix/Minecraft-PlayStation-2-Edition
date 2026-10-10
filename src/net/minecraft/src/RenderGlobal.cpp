@@ -98,7 +98,6 @@
 #include "World.h"
 #include "WorldProvider.h"
 #include "WorldHeight.h"
-#include "AxisAlignedBB.h"
 
 #include "WorldRenderer.h"
 #if PLATFORM_PS2
@@ -817,41 +816,6 @@ void RenderGlobal::renderEntities(Vec3D *vec3d, ICamera *icamera, float f)
 			tileEntities.erase(tileEntities.begin() + k);
 			continue;
 		}
-
-#if PLATFORM_PS2
-		// Block entities do not have entity-style frustum bounds. Use a generous
-		// local box so extended models (signs, pistons, etc.) remain visible near
-		// the edge of the view, then reject sections hidden by opaque terrain.
-		AxisAlignedBB tileBounds;
-		tileBounds.setBounds(
-			static_cast<double>(tileEntity->xCoord - 1),
-			static_cast<double>(tileEntity->yCoord - 1),
-			static_cast<double>(tileEntity->zCoord - 1),
-			static_cast<double>(tileEntity->xCoord + 2),
-			static_cast<double>(tileEntity->yCoord + 2),
-			static_cast<double>(tileEntity->zCoord + 2));
-		if (!icamera->isBoundingBoxInFrustum(&tileBounds))
-		{
-			++k;
-			continue;
-		}
-
-		if (PLATFORM_CPU_SECTION_OCCLUSION)
-		{
-			const int_t sectionX = JavaArithmetic::intShr(tileEntity->xCoord, 4);
-			const int_t sectionY = JavaArithmetic::intShr(tileEntity->yCoord, 4);
-			const int_t sectionZ = JavaArithmetic::intShr(tileEntity->zCoord, 4);
-			const int_t rendererIndex = ps2RendererIndexAtSection(sectionX, sectionY, sectionZ);
-			WorldRenderer *terrainRenderer =
-				rendererIndex >= 0 ? worldRenderers[rendererIndex] : nullptr;
-			if (terrainRenderer != nullptr && terrainRenderer->hasPublishedTerrain() &&
-				!terrainRenderer->ps2CpuVisible)
-			{
-				++k;
-				continue;
-			}
-		}
-#endif
 
 		TileEntityRenderer::instance.renderTileEntity(tileEntity, f);
 		++k;
