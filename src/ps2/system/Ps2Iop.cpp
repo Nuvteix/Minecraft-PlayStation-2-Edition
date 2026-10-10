@@ -7,7 +7,6 @@
 
 #include <cstdio>
 
-#include <dirent.h>
 #include <delaythread.h>
 #include <iopcontrol.h>
 #include <loadfile.h>
@@ -79,21 +78,6 @@ bool fileXioServerAvailable()
     return false;
 }
 
-bool hostFilesystemAvailable()
-{
-    for (int probe = 0; probe < 2; ++probe)
-    {
-        const char* path = probe == 0 ? "host:" : "host:/";
-        DIR* dir = opendir(path);
-        if (dir)
-        {
-            closedir(dir);
-            return true;
-        }
-    }
-    return false;
-}
-
 int loadEmbeddedIrx(const char* name, unsigned char* data, unsigned int size)
 {
     int moduleResult = 1;
@@ -130,14 +114,6 @@ bool loadMx4sioModules()
         MC_LOG_INFO("platform", "[PS2] using existing BDM storage at %s\n",
                     mounted.root.c_str());
         Ps2AssetLocator::addDiagnostic("Existing BDM mount: " + mounted.root);
-        return true;
-    }
-
-    if (hostFilesystemAvailable())
-    {
-        MC_LOG_INFO("platform",
-                    "[PS2] host filesystem detected; skipping MX4SIO/BDM load for emulator compatibility\n");
-        Ps2AssetLocator::addDiagnostic("Host filesystem available; MX4SIO/BDM intentionally skipped");
         return true;
     }
 
